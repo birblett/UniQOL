@@ -321,7 +321,7 @@ if ENABLE_SNAPPY_MENUS_OPTION
   end)
 
   trans = Graphics.method(:transition)
-  define_method(:transition) { |i=0| trans.(SNAPPY_MENUS == 1 ? 0 : i) }
+  Graphics.define_method(:transition) { |i=0| trans.(SNAPPY_MENUS == 1 ? 0 : i) }
 
 end unless mod_included?("SWM - SnappyMenus")
 
@@ -363,9 +363,9 @@ if ENABLE_HP_CHANGER
   insert_in_method(:PokemonScreen, :pbPokemonScreen, "cmdRename=-1", "cmdHP=-1")
   insert_in_method(:PokemonScreen, :pbPokemonScreen, "commands[cmdRename = commands.length] = _INTL(\"Rename\")", "commands[cmdHP = commands.length] = _INTL(\"Hidden Power\")")
   insert_in_method(:PokemonScreen, :pbPokemonScreen, "pbPokemonDebug(self, pkmn,pkmnid)", proc do |command, cmdHP, pkmn| if true
-                                                                                                                         elsif cmdHP >= 0 && command == cmdHP
-                                                                                                                           hp_type_change(pkmn)
-                                                                                                                         end end)
+    elsif cmdHP >= 0 && command == cmdHP
+      hp_type_change(pkmn)
+  end end)
 
 end
 
