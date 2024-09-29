@@ -1,4 +1,5 @@
 require "Data/Mods/UniLib/StandardAPI"
+require "Scripts/Rejuv/typetext"
 
 unilib_include "Options"
 
@@ -21,9 +22,10 @@ ENABLE_EGG_RELEARN_OPTION = true
 ENABLE_PREEVO_RELEARN_OPTION = true
 ENABLE_SNAPPY_MENUS_OPTION = true
 
-ENABLE_MASS_RELEASE = true
-ENABLE_UNREAL_CLOCK = true
 ENABLE_HP_CHANGER = true
+ENABLE_MASS_RELEASE = true
+ENABLE_TYPE_BATTLE_ICONS = true
+ENABLE_UNREAL_CLOCK = true
 
 #======================================================================================================================#
 #====================================================== OPTIONS =======================================================#
@@ -342,6 +344,31 @@ end
 #====================================================== FEATURES ======================================================#
 #======================================================================================================================#
 
+#================================================ HIDDEN POWER CHANGER ================================================#
+
+if ENABLE_HP_CHANGER
+
+  HP_TYPES = [:BUG, :DARK, :DRAGON, :ELECTRIC, :FAIRY, :FIGHTING, :FIRE, :FLYING, :GHOST, :GRASS, :GROUND, :ICE, :POISON, :PSYCHIC, :ROCK, :STEEL, :WATER, -1]
+
+  def hp_type_change(mon)
+    pbHiddenPower(mon) unless mon.hptype
+    typechoices = [_INTL("Bug"),_INTL("Dark"),_INTL("Dragon"),_INTL("Electric"),_INTL("Fairy"),_INTL("Fighting"),_INTL("Fire"),_INTL("Flying"),_INTL("Ghost"),_INTL("Grass"),_INTL("Ground"),_INTL("Ice"),_INTL("Poison"),_INTL("Psychic"),_INTL("Rock"),_INTL("Steel"),_INTL("Water"),_INTL("Cancel")]
+    choosetype = Kernel.pbMessage(_INTL("Which type should its move become?"),typechoices,18)
+    if (choosetype >= 0) && (choosetype < 17) and HP_TYPES[choosetype].class == Symbol
+      mon.hptype = HP_TYPES[choosetype]
+      Kernel.pbMessage(_INTL("{1}'s hidden power type was changed to {2}!", mon.name, typechoices[choosetype]))
+    end
+  end
+
+  insert_in_method(:PokemonScreen, :pbPokemonScreen, "cmdRename=-1", "cmdHP=-1")
+  insert_in_method(:PokemonScreen, :pbPokemonScreen, "commands[cmdRename = commands.length] = _INTL(\"Rename\")", "commands[cmdHP = commands.length] = _INTL(\"Hidden Power\")")
+  insert_in_method(:PokemonScreen, :pbPokemonScreen, "pbPokemonDebug(self, pkmn,pkmnid)", proc do |command, cmdHP, pkmn| if true
+                                                                                                                         elsif cmdHP >= 0 && command == cmdHP
+                                                                                                                           hp_type_change(pkmn)
+                                                                                                                         end end)
+
+end
+
 #==================================================== MASS RELEASE ====================================================#
 
 if ENABLE_MASS_RELEASE
@@ -359,6 +386,20 @@ if ENABLE_MASS_RELEASE
     else return [-2,-1]
     end
     return [-2,-1]
+  end)
+
+end
+
+#================================================== TYPE BATTLE ICONS =================================================#
+
+if ENABLE_TYPE_BATTLE_ICONS
+
+  TYPE_ICON_X = UniNumberOption.new("Type Icon X", "Horizontal offset of type battle icons.", 0, 212, 1, 12)
+  TYPE_ICON_Y = UniNumberOption.new("Type Icon Y", "Vertical offset of type battle icons.", 0, 80, 1, 10)
+
+  insert_in_method(:PokemonDataBox, :refresh, "aShowStatBoosts if $DEV", proc do |sbX|
+    offset_x, offset_y = TYPE_ICON_X - 36, TYPE_ICON_Y + 0
+    pbDrawImagePositions(self.bitmap, (@battler.effects[:Illusion].nil? ? [@battler.type1, @battler.type2] : [@battler.effects[:Illusion].type1, @battler.effects[:Illusion].type2]).reduce([]) { |types, type| type.nil? ? types : types << [unilib_resolve_asset("Types/#{type.to_sym}") + ".png", sbX + (offset_x += 32), offset_y, 0, 0, -1, -1]})
   end)
 
 end
@@ -424,7 +465,6 @@ if ENABLE_UNREAL_CLOCK
           break
         end
       end
-      Kernel.pbMessage("#{day}")
       $game_screen.gameTimeCurrent = Time.unrealTime_oldTimeNew(time.year,time.month, day, hours, minutes, time.sec)
       cmd.dispose
       Input.update
@@ -508,30 +548,5 @@ if ENABLE_UNREAL_CLOCK
       end
     end
   end
-
-end
-
-#================================================ HIDDEN POWER CHANGER ================================================#
-
-if ENABLE_HP_CHANGER
-
-  HP_TYPES = [:BUG, :DARK, :DRAGON, :ELECTRIC, :FAIRY, :FIGHTING, :FIRE, :FLYING, :GHOST, :GRASS, :GROUND, :ICE, :POISON, :PSYCHIC, :ROCK, :STEEL, :WATER, -1]
-
-  def hp_type_change(mon)
-    pbHiddenPower(mon) unless mon.hptype
-    typechoices = [_INTL("Bug"),_INTL("Dark"),_INTL("Dragon"),_INTL("Electric"),_INTL("Fairy"),_INTL("Fighting"),_INTL("Fire"),_INTL("Flying"),_INTL("Ghost"),_INTL("Grass"),_INTL("Ground"),_INTL("Ice"),_INTL("Poison"),_INTL("Psychic"),_INTL("Rock"),_INTL("Steel"),_INTL("Water"),_INTL("Cancel")]
-    choosetype = Kernel.pbMessage(_INTL("Which type should its move become?"),typechoices,18)
-    if (choosetype >= 0) && (choosetype < 17) and HP_TYPES[choosetype].class == Symbol
-      mon.hptype = HP_TYPES[choosetype]
-      Kernel.pbMessage(_INTL("{1}'s hidden power type was changed to {2}!", mon.name, typechoices[choosetype]))
-    end
-  end
-
-  insert_in_method(:PokemonScreen, :pbPokemonScreen, "cmdRename=-1", "cmdHP=-1")
-  insert_in_method(:PokemonScreen, :pbPokemonScreen, "commands[cmdRename = commands.length] = _INTL(\"Rename\")", "commands[cmdHP = commands.length] = _INTL(\"Hidden Power\")")
-  insert_in_method(:PokemonScreen, :pbPokemonScreen, "pbPokemonDebug(self, pkmn,pkmnid)", proc do |command, cmdHP, pkmn| if true
-    elsif cmdHP >= 0 && command == cmdHP
-      hp_type_change(pkmn)
-  end end)
 
 end
