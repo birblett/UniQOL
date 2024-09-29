@@ -533,4 +533,5 @@ if ENABLE_HP_CHANGER
     elsif cmdHP >= 0 && command == cmdHP
       hp_type_change(pkmn)
   end end)
+
 end
