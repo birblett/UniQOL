@@ -424,10 +424,10 @@ if ENABLE_UNREAL_CLOCK
           break
         end
       end
+      Kernel.pbMessage("#{day}")
       $game_screen.gameTimeCurrent = Time.unrealTime_oldTimeNew(time.year,time.month, day, hours, minutes, time.sec)
       cmd.dispose
       Input.update
-
       $scene = Scene_Pokegear.new
       Graphics.freeze
       pbDisposeSpriteHash(@sprites)
@@ -457,7 +457,7 @@ if ENABLE_UNREAL_CLOCK
       self.contents = pbDoEnsureBitmap(self.contents, self.width - self.borderX,self.height - self.borderY)
       pbSetSystemFont(self.contents)
       self.contents.clear
-      s=sprintf("%s%0*d%s%0*d",UNI_DOW[(@day - 1) % 7], 2, @hours, blink == 0 ? ":" : " ", 2, @minutes)
+      s=sprintf("%s%0*d%s%0*d",UNI_DOW[(@day - 2) % 7], 2, @hours, blink == 0 ? ":" : " ", 2, @minutes)
       render_time(0, 0, s[0, 3], 0)
       (3..4).each { |i| render_time((i - 0.5) * 14, 0, s[i, 1], i) }
       render_time(62, 0, s[5, 1], 5)
@@ -471,7 +471,7 @@ if ENABLE_UNREAL_CLOCK
         if Input.repeat?(Input::UP) or Input.repeat?(Input::DOWN)
           diff = Input.repeat?(Input::UP) ? 1 : -1
           case @index
-          when 0 then @day += diff
+          when 0 then @day += diff; @day = 8 if @day < 2; @day = 2 if @day > 8
           when 3 then @hours = ((@hours / 10 + diff).floor % 3) * 10 + @hours % 10; @hours = 11.5 - 11.5 * diff if @hours > 23
           when 4 then @hours = (@hours + diff) % 24
           when 6 then @minutes = (@minutes + 10  * diff) % 60
