@@ -396,16 +396,12 @@ end
 
 if ENABLE_STAT_BOOST_DISPLAY
 
+  STAT_BOOST_DISPLAY = UniStringOption.new("Stat Boost Disp.", "Reborn-style stat display while in battle.", %w[Off On], nil, 1)
   STAT_DISPLAY_POSITION_ARRAY = [[-24, 6], [220, 10]]
   STAT_DISPLAY_TYPES = [PBStats::ACCURACY, PBStats::ATTACK, PBStats::SPATK, PBStats::SPEED, PBStats::DEFENSE, PBStats::SPDEF, PBStats::EVASION]
   STAT_DISPLAY_POSITION_MAP = [[0, 0] [14,0], [2,10], [26,10], [14,20], [2,30], [26,30], [14,40]]
 
   class PokemonDataBox < SpriteWrapper
-
-    def dispose
-      super
-
-    end
 
     def init_stat_bitmap
       @stat_boost_bmp = SpriteWrapper.new(self.viewport)
@@ -428,18 +424,22 @@ if ENABLE_STAT_BOOST_DISPLAY
   insert_in_method(:SpriteWrapper, :dispose, :TAIL, "@stat_boost_bmp.dispose if defined? @stat_boost_bmp")
 
   insert_in_method(:PokemonDataBox, :update, "self.x-=8", proc do
-    init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
-    show_stat_stages
+    if STAT_BOOST_DISPLAY == 1
+      init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
+      show_stat_stages
+    end
   end)
 
   insert_in_method(:PokemonDataBox, :update, "self.x+=8", proc do
-    init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
-    show_stat_stages
+    if STAT_BOOST_DISPLAY == 1
+      init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
+      show_stat_stages
+    end
   end)
 
-  insert_in_method(:PokemonDataBox, :update, :TAIL, "show_stat_stages")
+  insert_in_method(:PokemonDataBox, :update, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY == 1")
 
-  insert_in_method(:PokemonDataBox, :refresh, "hpGaugeSize=PBScene::HPGAUGESIZE", "show_stat_stages")
+  insert_in_method(:PokemonDataBox, :refresh, "hpGaugeSize=PBScene::HPGAUGESIZE", "show_stat_stages if STAT_BOOST_DISPLAY == 1")
 
 end
 
@@ -447,12 +447,13 @@ end
 
 if ENABLE_TYPE_BATTLE_ICONS
 
+  TYPE_ICONS = UniStringOption.new("Type Icons", "Type display in-battle.", %w[Off On], nil, 1)
   TYPE_ICON_X = UniNumberOption.new("Type Icon X", "Horizontal offset of type battle icons.", 0, 200, 1, 12)
   TYPE_ICON_Y = UniNumberOption.new("Type Icon Y", "Vertical offset of type battle icons.", 0, 80, 1, 10)
 
   insert_in_method(:PokemonDataBox, :refresh, "aShowStatBoosts if $DEV", proc do |sbX|
     offset_x, offset_y = TYPE_ICON_X - 36, TYPE_ICON_Y + (@battler.battle.doublebattle ? -10 : 0)
-    pbDrawImagePositions(self.bitmap, (@battler.effects[:Illusion].nil? ? [@battler.type1, @battler.type2] : [@battler.effects[:Illusion].type1, @battler.effects[:Illusion].type2]).reduce([]) { |types, type| type.nil? ? types : types << [unilib_resolve_asset("Types/#{type.to_sym}.png"), sbX + (offset_x += 32), offset_y, 0, 0, -1, -1]})
+    pbDrawImagePositions(self.bitmap, (@battler.effects[:Illusion].nil? ? [@battler.type1, @battler.type2] : [@battler.effects[:Illusion].type1, @battler.effects[:Illusion].type2]).reduce([]) { |types, type| type.nil? ? types : types << [unilib_resolve_asset("Types/#{type.to_sym}.png"), sbX + (offset_x += 32), offset_y, 0, 0, -1, -1]}) if TYPE_ICONS == 1
   end)
 
 end
