@@ -381,7 +381,7 @@ if ENABLE_MOVE_RELEARNER
   MOVE_RELEARN_BEFORE_TUTOR = UniStringOption.new("Relearn Any Time", "Allows party relearning before unlocking the move relearner.", %w[Off On])
 
   def relearn_from_menu(pkmn)
-    if MOVE_RELEARN_FREE == 1 or Kernel.pbConfirmMessage("This will consume a Heart Scale. Continue?") and $PokemonBag.pbHasItem?(:HEARTSCALE)
+    if MOVE_RELEARN_FREE == 1 or $PokemonBag.pbHasItem?(:HEARTSCALE) and Kernel.pbConfirmMessage("This will consume a Heart Scale. Continue?")
       pbFadeOutIn(99999) { $has_relearned = MoveRelearnerScreen.new(MoveRelearnerScene.new).pbStartScreen(pkmn); pbUpdateSceneMap }
       $updateFLHUD = true
       $PokemonBag.pbDeleteItem(:HEARTSCALE) if $has_relearned
