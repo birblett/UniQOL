@@ -23,6 +23,7 @@ ENABLE_PREEVO_RELEARN_OPTION = true
 ENABLE_SNAPPY_MENUS_OPTION = true
 
 ENABLE_HP_CHANGER = true
+ENABLE_MOVE_RELEARNER = true
 ENABLE_MASS_RELEASE = true
 ENABLE_STAT_BOOST_DISPLAY = true
 ENABLE_TYPE_BATTLE_ICONS = true
@@ -365,6 +366,32 @@ if ENABLE_HP_CHANGER
 
   add_party_command("hidden_power", "HP Type", proc { |pkmn| hp_type_change(pkmn) }, proc { |pkmn| !pkmn.isEgg? and HIDDEN_POWER_CHANGER >= 2 })
   add_box_command("hidden_power", "HP Type", proc { |pkmn| hp_type_change(pkmn) }, proc { |pkmn, _| !pkmn.isEgg? and HIDDEN_POWER_CHANGER & 1 == 1 })
+
+end
+
+#============================================================= MOVE RELEARNER =============================================================#
+
+if ENABLE_MOVE_RELEARNER
+
+
+  MOVE_RELEARN_COMMAND = UniStringOption.new("Move Relearner", "Allows relearning moves in the PC or party.", %w[Off PC Party Both], nil, 1)
+
+  MOVE_RELEARN_FREE = UniStringOption.new("Free Relearning", "Party/PC relearn without costing a heart scale", %w[Off On])
+
+  MOVE_RELEARN_BEFORE_TUTOR = UniStringOption.new("Relearn Any Time", "Allows party relearning before unlocking the move relearner.", %w[Off On])
+
+  def relearn_from_menu(pkmn)
+    if MOVE_RELEARN_FREE == 1 or Kernel.pbMessage("This will consume a Heart Scale. Continue?", %w[Yes No]) == 0 and $PokemonBag.pbHasItem?(:HEARTSCALE)
+      pbFadeOutIn(99999) { $has_relearned = MoveRelearnerScreen.new(MoveRelearnerScene.new).pbStartScreen(pkmn); pbUpdateSceneMap }
+      $updateFLHUD = true
+      $PokemonBag.pbDeleteItem(:HEARTSCALE) if $has_relearned
+    elsif !$PokemonBag.pbHasItem?(:HEARTSCALE)
+      Kernel.pbMessage("You need a Heart Scale to relearn moves!")
+    end
+  end
+
+  add_party_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { |_| ($game_switches[1444] || MOVE_RELEARN_BEFORE_TUTOR == 1) && MOVE_RELEARN_COMMAND >= 2 })
+  add_box_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { |_| ($game_switches[1444] || MOVE_RELEARN_BEFORE_TUTOR == 1) && MOVE_RELEARN_COMMAND & 1 })
 
 end
 
