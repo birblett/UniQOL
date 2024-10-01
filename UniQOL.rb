@@ -336,7 +336,7 @@ end unless mod_included?("SWM - SnappyMenus")
 
 unless mod_included?("FixEggMoves")
 
-  replace_in_method(:PokeBattle_Pokemon, :getEggMoveList, "movelist = $cache.pkmn[babyspecies[0]].formData.dig(formname,:EggMoves)", proc do |babyspecies, formname, movelist|
+  replace_in_method(:PokeBattle_Pokemon, :getEggMoveList, "movelist = $cache.pkmn[babyspecies[0]].formData.dig(formname,:EggMoves)", proc do |babyspecies, formname|
     movelist = $cache.pkmn[babyspecies[0]].formData.dig(formname, :EggMoves) unless $cache.pkmn[babyspecies[0]].formData.dig(formname, :EggMoves).nil?
   end)
 
@@ -350,7 +350,7 @@ end
 
 if ENABLE_HP_CHANGER
 
-  HIDDEN_POWER_CHANGER = UniStringOption.new("HP Type Changer", "Allows changing hidden power type in the PC or party.", %w[Off PC Party Both], nil, 2)
+  HIDDEN_POWER_CHANGER = UniStringOption.new("HP Type Changer", "Allows changing hidden power type in the PC or party.", %w[Off PC Party Both])
 
   HP_TYPES = [:BUG, :DARK, :DRAGON, :ELECTRIC, :FAIRY, :FIGHTING, :FIRE, :FLYING, :GHOST, :GRASS, :GROUND, :ICE, :POISON, :PSYCHIC, :ROCK, :STEEL, :WATER, -1]
 
@@ -374,14 +374,14 @@ end
 if ENABLE_MOVE_RELEARNER
 
 
-  MOVE_RELEARN_COMMAND = UniStringOption.new("Move Relearner", "Allows relearning moves in the PC or party.", %w[Off PC Party Both], nil, 1)
+  MOVE_RELEARN_COMMAND = UniStringOption.new("Move Relearner", "Allows relearning moves in the PC or party.", %w[Off PC Party Both])
 
   MOVE_RELEARN_FREE = UniStringOption.new("Free Relearning", "Party/PC relearn without costing a heart scale", %w[Off On])
 
   MOVE_RELEARN_BEFORE_TUTOR = UniStringOption.new("Relearn Any Time", "Allows party relearning before unlocking the move relearner.", %w[Off On])
 
   def relearn_from_menu(pkmn)
-    if MOVE_RELEARN_FREE == 1 or Kernel.pbMessage("This will consume a Heart Scale. Continue?", %w[Yes No]) == 0 and $PokemonBag.pbHasItem?(:HEARTSCALE)
+    if MOVE_RELEARN_FREE == 1 or Kernel.pbConfirmMessage("This will consume a Heart Scale. Continue?") and $PokemonBag.pbHasItem?(:HEARTSCALE)
       pbFadeOutIn(99999) { $has_relearned = MoveRelearnerScreen.new(MoveRelearnerScene.new).pbStartScreen(pkmn); pbUpdateSceneMap }
       $updateFLHUD = true
       $PokemonBag.pbDeleteItem(:HEARTSCALE) if $has_relearned
