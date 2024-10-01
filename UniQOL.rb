@@ -423,8 +423,9 @@ if ENABLE_STAT_BOOST_DISPLAY
 
   STAT_BOOST_DISPLAY = UniStringOption.new("Stat Boost Disp.", "Reborn-style stat display while in battle.", %w[Off On], nil, 1)
   STAT_DISPLAY_POSITION_ARRAY = [[-24, 6], [220, 10]]
+  STAT_DISPLAY_POSITION_ARRAY_DOUBLE = [[-14, 2], [224, 2]]
   STAT_DISPLAY_TYPES = [PBStats::ACCURACY, PBStats::ATTACK, PBStats::SPATK, PBStats::SPEED, PBStats::DEFENSE, PBStats::SPDEF, PBStats::EVASION]
-  STAT_DISPLAY_POSITION_MAP = [[0, 0] [14,0], [2,10], [26,10], [14,20], [2,30], [26,30], [14,40]]
+  STAT_DISPLAY_POSITION_MAP = [[14,0], [2,10], [26,10], [14,20], [2,30], [26,30], [14,40]]
 
   class PokemonDataBox < SpriteWrapper
 
@@ -436,8 +437,10 @@ if ENABLE_STAT_BOOST_DISPLAY
 
     def show_stat_stages
       @stat_boost_bmp.bitmap.clear if defined? @stat_boost_bmp
-      return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or !self.visible
-      x_offset, y_offset = STAT_DISPLAY_POSITION_ARRAY[@battler.index & 1]
+      return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or !self.visible or @battler.nil?
+      @double = @battler.battle.doublebattle unless defined? @double
+      x_offset, y_offset = @double ? STAT_DISPLAY_POSITION_ARRAY_DOUBLE[@battler.index & 1] : STAT_DISPLAY_POSITION_ARRAY[@battler.index & 1]
+      x_offset, y_offset = x_offset - 26, y_offset - 6 if @battler.issossmon
       @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
       stats = [[unilib_resolve_asset("StatIcons/main.png"), 0, 0, 0, 0, -1, -1]]
       STAT_DISPLAY_TYPES.map { |type| @battler.stages[type]}.each_with_index { |stage, i| stats.push([unilib_resolve_asset("StatIcons/stages.png"), STAT_DISPLAY_POSITION_MAP[i][0], STAT_DISPLAY_POSITION_MAP[i][1], stage > 0 ? 0 : 22, (stage.abs - 1) * 22, 22, 22]) unless stage == 0 }
@@ -445,8 +448,6 @@ if ENABLE_STAT_BOOST_DISPLAY
     end
 
   end
-
-  insert_in_method(:SpriteWrapper, :dispose, :TAIL, "@stat_boost_bmp.dispose if defined? @stat_boost_bmp")
 
   insert_in_method(:PokemonDataBox, :update, "self.x-=8", proc do
     if STAT_BOOST_DISPLAY == 1
@@ -466,6 +467,39 @@ if ENABLE_STAT_BOOST_DISPLAY
 
   insert_in_method(:PokemonDataBox, :refresh, "hpGaugeSize=PBScene::HPGAUGESIZE", "show_stat_stages if STAT_BOOST_DISPLAY == 1")
 
+  class BossPokemonDataBox < SpriteWrapper
+
+    def init_stat_bitmap
+      @stat_boost_bmp = SpriteWrapper.new(self.viewport)
+      @stat_boost_bmp.bitmap = BitmapWrapper.new(50, 64)
+      @stat_boost_bmp.z = 100
+    end
+
+    def show_stat_stages
+      @stat_boost_bmp.bitmap.clear if defined? @stat_boost_bmp
+      return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or !self.visible or @battler.nil?
+      x_offset, y_offset = 290, 10
+      @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
+      stats = [[unilib_resolve_asset("StatIcons/main.png"), 0, 0, 0, 0, -1, -1]]
+      STAT_DISPLAY_TYPES.map { |type| @battler.stages[type]}.each_with_index { |stage, i| stats.push([unilib_resolve_asset("StatIcons/stages.png"), STAT_DISPLAY_POSITION_MAP[i][0], STAT_DISPLAY_POSITION_MAP[i][1], stage > 0 ? 0 : 22, (stage.abs - 1) * 22, 22, 22]) unless stage == 0 }
+      pbDrawImagePositions(@stat_boost_bmp.bitmap, stats)
+    end
+
+  end
+
+  insert_in_method(:BossPokemonDataBox, :update, "self.x+=8", proc do
+    if STAT_BOOST_DISPLAY == 1
+      init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
+      show_stat_stages
+    end
+  end)
+
+  insert_in_method(:BossPokemonDataBox, :update, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY == 1")
+
+  insert_in_method(:BossPokemonDataBox, :refresh, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY == 1")
+
+  insert_in_method(:SpriteWrapper, :dispose, :TAIL, "@stat_boost_bmp.dispose if defined? @stat_boost_bmp")
+
 end
 
 #============================================================ TYPE BATTLE ICONS ===========================================================#
@@ -477,8 +511,15 @@ if ENABLE_TYPE_BATTLE_ICONS
   TYPE_ICON_Y = UniNumberOption.new("Type Icon Y", "Vertical offset of type battle icons.", 0, 80, 1, 10)
 
   insert_in_method(:PokemonDataBox, :refresh, "aShowStatBoosts if $DEV", proc do |sbX|
-    offset_x, offset_y = TYPE_ICON_X - 36, TYPE_ICON_Y + (@battler.battle.doublebattle ? -10 : 0)
+    @double = @battler.battle.doublebattle unless defined? @double
+    offset_x, offset_y = TYPE_ICON_X - 36, TYPE_ICON_Y + (@double ? -10 : 0)
+    offset_x, offset_y = offset_x - 4, offset_y + 44 if @battler.issossmon
     pbDrawImagePositions(self.bitmap, (@battler.effects[:Illusion].nil? ? [@battler.type1, @battler.type2] : [@battler.effects[:Illusion].type1, @battler.effects[:Illusion].type2]).reduce([]) { |types, type| type.nil? ? types : types << [unilib_resolve_asset("Types/#{type.to_sym}.png"), sbX + (offset_x += 32), offset_y, 0, 0, -1, -1]}) if TYPE_ICONS == 1
+  end)
+
+  insert_in_method(:BossPokemonDataBox, :refresh, :TAIL, proc do
+    offset_x, offset_y = TYPE_ICON_X - 32, TYPE_ICON_Y - 2
+    pbDrawImagePositions(self.bitmap, (@battler.effects[:Illusion].nil? ? [@battler.type1, @battler.type2] : [@battler.effects[:Illusion].type1, @battler.effects[:Illusion].type2]).reduce([]) { |types, type| type.nil? ? types : types << [unilib_resolve_asset("Types/#{type.to_sym}.png"), (offset_x += 32), offset_y, 0, 0, -1, -1]}) if TYPE_ICONS == 1
   end)
 
 end
