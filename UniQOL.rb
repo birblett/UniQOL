@@ -440,7 +440,7 @@ if ENABLE_STAT_BOOST_DISPLAY
       return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or !self.visible or @battler.nil?
       @double = @battler.battle.doublebattle unless defined? @double
       x_offset, y_offset = @double ? STAT_DISPLAY_POSITION_ARRAY_DOUBLE[@battler.index & 1] : STAT_DISPLAY_POSITION_ARRAY[@battler.index & 1]
-      x_offset, y_offset = x_offset - 26, y_offset - 6 if @battler.issossmon
+      x_offset, y_offset = x_offset - 30, y_offset if @battler.issossmon
       @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
       stats = [[unilib_resolve_asset("StatIcons/main.png"), 0, 0, 0, 0, -1, -1]]
       STAT_DISPLAY_TYPES.map { |type| @battler.stages[type]}.each_with_index { |stage, i| stats.push([unilib_resolve_asset("StatIcons/stages.png"), STAT_DISPLAY_POSITION_MAP[i][0], STAT_DISPLAY_POSITION_MAP[i][1], stage > 0 ? 0 : 22, (stage.abs - 1) * 22, 22, 22]) unless stage == 0 }
