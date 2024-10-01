@@ -349,24 +349,22 @@ end
 
 if ENABLE_HP_CHANGER
 
+  HIDDEN_POWER_CHANGER = UniStringOption.new("HP Type Changer", "Allows changing hidden power type in the PC or party.", %w[Off PC Party Both], nil, 2)
+
   HP_TYPES = [:BUG, :DARK, :DRAGON, :ELECTRIC, :FAIRY, :FIGHTING, :FIRE, :FLYING, :GHOST, :GRASS, :GROUND, :ICE, :POISON, :PSYCHIC, :ROCK, :STEEL, :WATER, -1]
 
   def hp_type_change(mon)
     pbHiddenPower(mon) unless mon.hptype
     typechoices = [_INTL("Bug"),_INTL("Dark"),_INTL("Dragon"),_INTL("Electric"),_INTL("Fairy"),_INTL("Fighting"),_INTL("Fire"),_INTL("Flying"),_INTL("Ghost"),_INTL("Grass"),_INTL("Ground"),_INTL("Ice"),_INTL("Poison"),_INTL("Psychic"),_INTL("Rock"),_INTL("Steel"),_INTL("Water"),_INTL("Cancel")]
-    choosetype = Kernel.pbMessage(_INTL("Which type should its move become?"),typechoices,18)
+    choosetype = Kernel.pbMessage(_INTL("Which type should its move become? (currently {1})", typechoices[HP_TYPES.find_index(mon.hptype)]), typechoices,18)
     if (choosetype >= 0) && (choosetype < 17) and HP_TYPES[choosetype].class == Symbol
       mon.hptype = HP_TYPES[choosetype]
       Kernel.pbMessage(_INTL("{1}'s hidden power type was changed to {2}!", mon.name, typechoices[choosetype]))
     end
   end
 
-  insert_in_method(:PokemonScreen, :pbPokemonScreen, "cmdRename=-1", "cmdHP=-1")
-  insert_in_method(:PokemonScreen, :pbPokemonScreen, "commands[cmdRename = commands.length] = _INTL(\"Rename\")", "commands[cmdHP = commands.length] = _INTL(\"Hidden Power\")")
-  insert_in_method(:PokemonScreen, :pbPokemonScreen, "pbPokemonDebug(self, pkmn,pkmnid)", proc do |command, cmdHP, pkmn| if true
-    elsif cmdHP >= 0 && command == cmdHP
-      hp_type_change(pkmn)
-  end end)
+  add_party_command("hidden_power", "HP Type", proc { |pkmn| hp_type_change(pkmn) }, proc { |pkmn| !pkmn.isEgg? and HIDDEN_POWER_CHANGER >= 2 })
+  add_box_command("hidden_power", "HP Type", proc { |pkmn| hp_type_change(pkmn) }, proc { |pkmn, _| !pkmn.isEgg? and HIDDEN_POWER_CHANGER & 1 == 1 })
 
 end
 
@@ -501,8 +499,8 @@ if ENABLE_UNREAL_CLOCK
       Graphics.transition
 
       time = $game_screen.gameTimeCurrent
-      day, hours, minutes = time.day, time.hour, time.min
-      cmd = Window_InputTime.new(day, hours, minutes)
+      day_offset, hours, minutes = 0, time.hour, time.min
+      cmd = Window_InputTime.new(time.strftime("%a"), hours, minutes)
       offset_y = [18, 32, -32, 32][UNREAL_CLOCK_BG.value]
       cmd.x, cmd.y, cmd.z, cmd.visible = Graphics.width / 2 - 80, Graphics.height / 2 - offset_y, 99999, true
       loop do
@@ -511,7 +509,7 @@ if ENABLE_UNREAL_CLOCK
         cmd.update
         yield if block_given?
         if Input.trigger?(Input::C)
-          day, hours, minutes = cmd.day, cmd.hours, cmd.minutes
+          day_offset, hours, minutes = cmd.day_offset, cmd.hours, cmd.minutes
           break
         elsif Input.trigger?(Input::B)
           pbPlayCancelSE()
@@ -519,7 +517,7 @@ if ENABLE_UNREAL_CLOCK
           break
         end
       end
-      $game_screen.gameTimeCurrent = Time.unrealTime_oldTimeNew(time.year,time.month, day, hours, minutes, time.sec)
+      $game_screen.gameTimeCurrent = Time.unrealTime_oldTimeNew(time.year,time.month, time.day, hours, minutes, time.sec) + day_offset * 86400
       cmd.dispose
       Input.update
       $scene = Scene_Pokegear.new
@@ -531,13 +529,14 @@ if ENABLE_UNREAL_CLOCK
 
   class Window_InputTime < SpriteWindow_Base
 
-    attr_accessor :day
+    attr_accessor :day_offset
     attr_accessor :hours
     attr_accessor :minutes
 
-    def initialize(day, hours, minutes)
+    def initialize(day_name, hours, minutes)
       super(0, 0, 32, 32)
-      @day = day
+      @day = UNI_DOW.find_index(day_name)
+      @day_offset = 0
       @hours = hours
       @minutes = minutes
       @frame = 0
@@ -551,7 +550,7 @@ if ENABLE_UNREAL_CLOCK
       self.contents = pbDoEnsureBitmap(self.contents, self.width - self.borderX,self.height - self.borderY)
       pbSetSystemFont(self.contents)
       self.contents.clear
-      s=sprintf("%s%0*d%s%0*d",UNI_DOW[(@day - 2) % 7], 2, @hours, blink == 0 ? ":" : " ", 2, @minutes)
+      s=sprintf("%s%0*d%s%0*d",UNI_DOW[@day % 7], 2, @hours, blink == 0 ? ":" : " ", 2, @minutes)
       render_time(0, 0, s[0, 3], 0)
       (3..4).each { |i| render_time((i - 0.5) * 14, 0, s[i, 1], i) }
       render_time(62, 0, s[5, 1], 5)
@@ -565,7 +564,7 @@ if ENABLE_UNREAL_CLOCK
         if Input.repeat?(Input::UP) or Input.repeat?(Input::DOWN)
           diff = Input.repeat?(Input::UP) ? 1 : -1
           case @index
-          when 0 then @day += diff; @day = 8 if @day < 2; @day = 2 if @day > 8
+          when 0 then @day += diff; @day_offset += diff; @day = 6 if @day < 0; @day = 0 if @day > 6
           when 3 then @hours = ((@hours / 10 + diff).floor % 3) * 10 + @hours % 10; @hours = 11.5 - 11.5 * diff if @hours > 23
           when 4 then @hours = (@hours + diff) % 24
           when 6 then @minutes = (@minutes + 10  * diff) % 60
