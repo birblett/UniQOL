@@ -2,7 +2,7 @@ require "Data/Mods/UniLib/StandardAPI"
 require "Scripts/Rejuv/typetext"
 
 unilib_include "Options"
-verify_version(0.5, File.basename(__FILE__).gsub!(".rb", ""))
+verify_version(0.5, __FILE__)
 
 ENABLE_DEBUG_TOGGLE_OPTION = true
 ENABLE_PRISM_CHANCE_OPTION = true
