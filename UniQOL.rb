@@ -570,7 +570,7 @@ if ENABLE_TYPE_BATTLE_ICONS
   TYPE_ICON_Y = UniNumberOption.new("Type Icon Y", "Vertical offset of type battle icons.", 0, 80, 1, 10)
 
   TYPE_ICON_BITMAPS.each { |_, bmp| bmp.dispose } if defined? TYPE_ICON_BITMAPS
-  TYPE_ICON_BITMAPS = [:BUG, :DARK, :DRAGON, :ELECTRIC, :FAIRY, :FIGHTING, :FIRE, :FLYING, :GHOST, :GRASS, :GROUND, :ICE, :POISON, :PSYCHIC, :ROCK, :STEEL, :WATER, :SHADOW, :QMARKS].to_h { |type| [type, AnimatedBitmap.new(unilib_resolve_asset("Types/#{type.to_s}.png"))] }
+  TYPE_ICON_BITMAPS = [:NORMAL, :BUG, :DARK, :DRAGON, :ELECTRIC, :FAIRY, :FIGHTING, :FIRE, :FLYING, :GHOST, :GRASS, :GROUND, :ICE, :POISON, :PSYCHIC, :ROCK, :STEEL, :WATER, :SHADOW, :QMARKS].to_h { |type| [type, AnimatedBitmap.new(unilib_resolve_asset("Types/#{type.to_s}.png"))] }
 
   def draw_types(bitmap, textpos)
     for i in textpos
