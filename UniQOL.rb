@@ -323,6 +323,42 @@ if ENABLE_SNAPPY_MENUS_OPTION
     end
   end)
 
+  insert_in_method(:QuestList_Scene, :fadeContent, :HEAD, proc do
+    if SNAPPY_MENUS == 1
+      Graphics.update
+      @sprites["itemlist"].contents_opacity -= 255
+      @sprites["overlay1"].opacity -= 255; @sprites["overlay_control"].opacity -= 255
+      @sprites["page_icon1"].opacity -= 255; @sprites["pageIcon"].opacity -= 255
+      return
+    end
+  end)
+
+  insert_in_method(:QuestList_Scene, :showContent, :HEAD, proc do
+    if SNAPPY_MENUS == 1
+      Graphics.update
+      @sprites["itemlist"].contents_opacity += 255
+      @sprites["overlay1"].opacity += 255; @sprites["overlay_control"].opacity += 255
+      @sprites["page_icon1"].opacity += 255; @sprites["pageIcon"].opacity += 255
+      return
+    end
+  end)
+
+  insert_in_method_before(:QuestList_Scene, :pbQuest, "Graphics.update", proc do
+    if SNAPPY_MENUS == 1
+      @sprites["overlay2"].opacity += 255; @sprites["overlay3"].opacity += 255; @sprites["page_icon2"].opacity += 255
+      Graphics.update
+      break
+    end
+  end)
+
+  insert_in_method_before(:QuestList_Scene, :pbQuest, "Graphics.update", proc do
+    if SNAPPY_MENUS == 1
+      @sprites["overlay2"].opacity -= 255; @sprites["overlay3"].opacity -= 255; @sprites["page_icon2"].opacity -= 255
+      Graphics.update
+      break
+    end
+  end, 2)
+
   trans = Graphics.method(:transition)
   Graphics.define_method(:transition) { |i=0| trans.(SNAPPY_MENUS == 1 ? 0 : i) }
 
