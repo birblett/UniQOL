@@ -410,7 +410,6 @@ end
 
 if ENABLE_MOVE_RELEARNER
 
-
   MOVE_RELEARN_COMMAND = UniStringOption.new("Move Relearner", "Allows relearning moves in the PC or party.", %w[Off PC Party Both])
 
   MOVE_RELEARN_FREE = UniStringOption.new("Free Relearning", "Party/PC relearn without costing a heart scale", %w[Off On])
