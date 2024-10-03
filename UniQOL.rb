@@ -457,7 +457,7 @@ end
 
 if ENABLE_STAT_BOOST_DISPLAY
 
-  STAT_BOOST_DISPLAY = UniStringOption.new("Stat Boost Disp.", "Stat change display while in battle.", %w[Off Reborn Custom], nil, 2)
+  STAT_BOOST_DISPLAY = UniStringOption.new("Stat Boost Disp.", "Stat change display while in battle.", %w[Off Reborn Compact], nil, 1)
   STAT_DISPLAY_POSITION_ARRAY = [[-24, 6], [220, 10]]
   STAT_DISPLAY_POSITION_ARRAY_DOUBLE = [[-14, 2], [224, 2]]
   STAT_DISPLAY_TYPES = [PBStats::ACCURACY, PBStats::ATTACK, PBStats::SPATK, PBStats::SPEED, PBStats::DEFENSE, PBStats::SPDEF, PBStats::EVASION]
@@ -485,6 +485,8 @@ if ENABLE_STAT_BOOST_DISPLAY
     end
   end
 
+  TRACKED_BMPS = []
+
   class PokemonDataBox < SpriteWrapper
 
     def init_stat_bitmap
@@ -503,7 +505,7 @@ if ENABLE_STAT_BOOST_DISPLAY
         x_offset, y_offset = x_offset - 30, y_offset if @battler.issossmon
         @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
         stats.push([0, 0, 0, 0, 0, -1, -1])
-        STAT_DISPLAY_TYPES.map { |type| @battler.stages[type]}.each_with_index { |stage, i| stats.push([0, STAT_DISPLAY_POSITION_MAP[i][0], STAT_DISPLAY_POSITION_MAP[i][1], stage > 0 ? 0 : 22, (stage.abs - 1) * 22, 22, 22]) unless stage == 0 }
+        STAT_DISPLAY_TYPES.map { |type| @battler.stages[type]}.each_with_index { |stage, i| stats.push([1, STAT_DISPLAY_POSITION_MAP[i][0], STAT_DISPLAY_POSITION_MAP[i][1], stage > 0 ? 0 : 22, (stage.abs - 1) * 22, 22, 22]) unless stage == 0 }
       else
         @double = @battler.battle.doublebattle unless defined? @double
         x_offset, y_offset = @double ? ALT_STAT_DISPLAY_POSITION_ARRAY_DOUBLE[@battler.index & 1] : ALT_STAT_DISPLAY_POSITION_ARRAY[@battler.index & 1]
@@ -543,7 +545,7 @@ if ENABLE_STAT_BOOST_DISPLAY
 
   insert_in_method(:PokemonDataBox, :refresh, "hpGaugeSize=PBScene::HPGAUGESIZE", "show_stat_stages if STAT_BOOST_DISPLAY > 0")
 
-  insert_in_method(:PokemonDataBox, :refresh, "if @battler.hasCrest?(illusion) || (@battler.crested && !illusion)", "megaX, megaY = megaX - 1, megaY + 20 if STAT_BOOST_DISPLAY == 2")
+  insert_in_method(:PokemonDataBox, :refresh, "if @battler.hasCrest?(illusion) || (@battler.crested && !illusion)", "megaX, megaY = megaX - 1, megaY + 20 if STAT_BOOST_DISPLAY > 0")
 
   class BossPokemonDataBox < SpriteWrapper
 
@@ -592,7 +594,19 @@ if ENABLE_STAT_BOOST_DISPLAY
 
   insert_in_method(:BossPokemonDataBox, :refresh, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY > 0")
 
-  insert_in_method(:SpriteWrapper, :dispose, :TAIL, "@stat_boost_bmp.dispose if defined? @stat_boost_bmp and !@stat_boost_bmp.disposed?")
+  insert_in_method(:PokemonDataBox, :dispose, :TAIL, proc do
+    if defined? @stat_boost_bmp
+      @stat_boost_bmp.bitmap.clear
+      @stat_boost_bmp.dispose
+    end
+  end)
+
+  insert_in_method(:BossPokemonDataBox, :dispose, :TAIL, proc do
+    if defined? @stat_boost_bmp
+      @stat_boost_bmp.bitmap.clear
+      @stat_boost_bmp.dispose
+    end
+  end)
 
 end
 
