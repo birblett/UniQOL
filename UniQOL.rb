@@ -22,6 +22,7 @@ ENABLE_ITEM_REPLENISH_OPTION = true
 ENABLE_EGG_RELEARN_OPTION = true
 ENABLE_PREEVO_RELEARN_OPTION = true
 ENABLE_SNAPPY_MENUS_OPTION = true
+ENABLE_SHADOW_CACHE = true
 
 ENABLE_HP_CHANGER = true
 ENABLE_MOVE_RELEARNER = true
@@ -79,7 +80,7 @@ if ENABLE_CONTRACT_MODE_OPTION
 
   TECH_CONTRACT_EVENT = proc do |_,e|
     pokemon=e[0]
-    if CONTRACT_MODE > 0
+    if CONTRACT_MODE > 0 and $game_variables[:LuckMoves] > 0
       bonuslist = pokemon.formCheck(:compatiblemoves)
       bonuslist = $cache.pkmn[pokemon.species].compatiblemoves if bonuslist.nil?
       case CONTRACT_MODE
@@ -371,6 +372,33 @@ if ENABLE_SNAPPY_MENUS_OPTION
 
 end unless UniLib.mod_included?("SWM - SnappyMenus")
 
+#============================================================== SHADOW CACHE ==============================================================#
+
+if ENABLE_SHADOW_CACHE
+
+  SHADOW_ICON_BMP_CACHE = {}
+  SHADOW_SPECIES_BMP_CACHE = {}
+
+  CACHE_SHADOWS = UniStringOption.new("Cache Shadows", "Caches shadow pokemon to mitigate box/storage lagspikes.", %w[Off On])
+
+  UniLib.insert_in_function(:pbPokemonIconBitmap, "species = $cache.pkmn[pokemon.species].dexnum",
+    "return SHADOW_ICON_BMP_CACHE[pokemon] if CACHE_SHADOWS == 1 and SHADOW_ICON_BMP_CACHE[pokemon] and pokemon.isShadow?")
+
+  UniLib.insert_in_function_before(:pbPokemonIconBitmap, "return bitmap",
+    "SHADOW_ICON_BMP_CACHE[pokemon] = bitmap if CACHE_SHADOWS == 1 and pokemon.isShadow?")
+
+  UniLib.insert_in_function(:pbLoadPokemonBitmapSpecies, "formname = $cache.pkmn[species].forms[pokemon.form]",
+  "shadow_cache = CACHE_SHADOWS == 1 and pokemon.isShadow? and !back
+  if shadow_cache
+    key = [dexnum, formname, pokemon.isShiny?, pokemon.gender, pokemon.isEgg?]
+    return SHADOW_SPECIES_BMP_CACHE[pokemon][1] if SHADOW_SPECIES_BMP_CACHE[pokemon] and SHADOW_SPECIES_BMP_CACHE[pokemon][0] == key
+  end")
+
+  UniLib.insert_in_function_before(:pbLoadPokemonBitmapSpecies, "return bitmap",
+    "SHADOW_SPECIES_BMP_CACHE[pokemon] = [key, bitmap] if shadow_cache")
+
+end
+
 #==========================================================================================================================================#
 #================================================================== FIXES =================================================================#
 #==========================================================================================================================================#
@@ -432,8 +460,8 @@ if ENABLE_MOVE_RELEARNER
     end
   end
 
-  UniLib.add_party_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { |_| ($game_switches[1444] || MOVE_RELEARN_BEFORE_TUTOR == 1) && MOVE_RELEARN_COMMAND >= 2 })
-  UniLib.add_box_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { |_| ($game_switches[1445] || MOVE_RELEARN_BEFORE_TUTOR == 1) && MOVE_RELEARN_COMMAND & 1 })
+  UniLib.add_party_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { ($game_switches[1444] || MOVE_RELEARN_BEFORE_TUTOR == 1) && MOVE_RELEARN_COMMAND >= 2 })
+  UniLib.add_box_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { ($game_switches[1445] || MOVE_RELEARN_BEFORE_TUTOR == 1) && MOVE_RELEARN_COMMAND & 1 })
 
 end
 
@@ -520,12 +548,18 @@ if ENABLE_STAT_BOOST_DISPLAY
       @stat_boost_bmp = SpriteWrapper.new(self.viewport)
       @stat_boost_bmp.bitmap = STAT_BOOST_DISPLAY == 1 ? BitmapWrapper.new(50, 64) :BitmapWrapper.new(24, 57)
       @stat_boost_bmp.z = 51
-      TRACKED_BMPS.push(@stat_boost_bmp)
+      prev = TRACKED_BMPS[@battler.index]
+      unless prev.nil?
+        prev.bitmap.clear
+        prev.dispose
+      end
+      TRACKED_BMPS[@battler.index] = @stat_boost_bmp
     end
 
     def show_stat_stages
-      @stat_boost_bmp.bitmap.clear if defined? @stat_boost_bmp
-      return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or !self.visible or @battler.nil?
+      return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or @battler.nil?
+      @stat_boost_bmp.bitmap.clear
+      return unless self.visible
       stats = []
       if STAT_BOOST_DISPLAY == 1
         @double = @battler.battle.doublebattle unless defined? @double
@@ -557,17 +591,18 @@ if ENABLE_STAT_BOOST_DISPLAY
 
   UniLib.insert_in_method(:PokemonDataBox, :update, "self.x-=8",
     "if STAT_BOOST_DISPLAY > 0
-      init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
+      init_stat_bitmap if !defined? @stat_boost_bmp
       show_stat_stages
     end")
 
   UniLib.insert_in_method(:PokemonDataBox, :update, "self.x+=8",
     "if STAT_BOOST_DISPLAY > 0
-      init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
+      init_stat_bitmap if !defined? @stat_boost_bmp
       show_stat_stages
     end")
 
-  UniLib.insert_in_method(:PokemonDataBox, :update, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY > 0")
+  UniLib.insert_in_method(:PokemonDataBox, :update, :TAIL,
+    "show_stat_stages if STAT_BOOST_DISPLAY > 0")
 
   UniLib.insert_in_method(:PokemonDataBox, :refresh, "hpGaugeSize=PBScene::HPGAUGESIZE", "show_stat_stages if STAT_BOOST_DISPLAY > 0")
 
@@ -579,11 +614,18 @@ if ENABLE_STAT_BOOST_DISPLAY
       @stat_boost_bmp = SpriteWrapper.new(self.viewport)
       @stat_boost_bmp.bitmap = STAT_BOOST_DISPLAY == 1 ? BitmapWrapper.new(50, 64) :BitmapWrapper.new(24, 57)
       @stat_boost_bmp.z = 100
+      prev = TRACKED_BMPS[@battler.index]
+      unless prev.nil?
+        prev.bitmap.clear
+        prev.dispose
+      end
+      TRACKED_BMPS[@battler.index] = @stat_boost_bmp
     end
 
     def show_stat_stages
-      @stat_boost_bmp.bitmap.clear if defined? @stat_boost_bmp
-      return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or !self.visible or @battler.nil?
+      return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or @battler.nil?
+      @stat_boost_bmp.bitmap.clear
+      return unless self.visible
       stats = []
       if STAT_BOOST_DISPLAY == 1
         x_offset, y_offset = 290, 10
@@ -617,18 +659,6 @@ if ENABLE_STAT_BOOST_DISPLAY
   UniLib.insert_in_method(:BossPokemonDataBox, :update, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY > 0")
 
   UniLib.insert_in_method(:BossPokemonDataBox, :refresh, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY > 0")
-
-  UniLib.insert_in_method(:PokemonDataBox, :dispose, :TAIL,
-    "if defined? @stat_boost_bmp
-      @stat_boost_bmp.bitmap.clear
-      @stat_boost_bmp.dispose
-    end")
-
-  UniLib.insert_in_method(:BossPokemonDataBox, :dispose, :TAIL,
-    "if defined? @stat_boost_bmp
-      @stat_boost_bmp.bitmap.clear
-      @stat_boost_bmp.dispose
-    end")
 
 end
 
