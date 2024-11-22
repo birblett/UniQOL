@@ -32,6 +32,10 @@ ENABLE_STAT_BOOST_DISPLAY = true
 ENABLE_TYPE_BATTLE_ICONS = true
 ENABLE_UNREAL_CLOCK = true
 
+def uniqol_asset(path)
+  "Data/Mods/UniQOLAssets/#{path}"
+end
+
 #==========================================================================================================================================#
 #================================================================ OPTIONS =================================================================#
 #==========================================================================================================================================#
@@ -522,11 +526,11 @@ if ENABLE_STAT_BOOST_DISPLAY
 
   DISPLAY_BITMAPS.each { |b| b.dispose } if defined? DISPLAY_BITMAPS
   DISPLAY_BITMAPS = [
-    AnimatedBitmap.new(UniLib.resolve_asset("StatIcons/main.png")),
-    AnimatedBitmap.new(UniLib.resolve_asset("StatIcons/stages.png")),
-    AnimatedBitmap.new(UniLib.resolve_asset("StatIcons/main_alt.png")),
-    AnimatedBitmap.new(UniLib.resolve_asset("StatIcons/words_alt.png")),
-    AnimatedBitmap.new(UniLib.resolve_asset("StatIcons/stages_alt.png"))
+    AnimatedBitmap.new(uniqol_asset("StatIcons/main.png")),
+    AnimatedBitmap.new(uniqol_asset("StatIcons/stages.png")),
+    AnimatedBitmap.new(uniqol_asset("StatIcons/main_alt.png")),
+    AnimatedBitmap.new(uniqol_asset("StatIcons/words_alt.png")),
+    AnimatedBitmap.new(uniqol_asset("StatIcons/stages_alt.png"))
   ]
 
   def draw_stats(bitmap, textpos)
@@ -674,7 +678,7 @@ if ENABLE_TYPE_BATTLE_ICONS
   TYPE_ICON_Y = UniNumberOption.new("Type Icon Y", "Vertical offset of type battle icons.", 0, 80, 1, 10)
 
   TYPE_ICON_BITMAPS.each { |_, bmp| bmp.dispose } if defined? TYPE_ICON_BITMAPS
-  TYPE_ICON_BITMAPS = [:NORMAL, :BUG, :DARK, :DRAGON, :ELECTRIC, :FAIRY, :FIGHTING, :FIRE, :FLYING, :GHOST, :GRASS, :GROUND, :ICE, :POISON, :PSYCHIC, :ROCK, :STEEL, :WATER, :SHADOW, :QMARKS].to_h { |type| [type, AnimatedBitmap.new(UniLib.resolve_asset("Types/#{type.to_s}.png"))] }
+  TYPE_ICON_BITMAPS = [:NORMAL, :BUG, :DARK, :DRAGON, :ELECTRIC, :FAIRY, :FIGHTING, :FIRE, :FLYING, :GHOST, :GRASS, :GROUND, :ICE, :POISON, :PSYCHIC, :ROCK, :STEEL, :WATER, :SHADOW, :QMARKS].to_h { |type| [type, AnimatedBitmap.new(uniqol_asset("Types/#{type.to_s}.png"))] }
 
   def draw_types(bitmap, textpos)
     textpos.each { |i|
@@ -705,7 +709,7 @@ if ENABLE_UNREAL_CLOCK
 
   UNI_DOW = %w[Mon Tue Wed Thu Fri Sat Sun]
 
-  UNREAL_CLOCK_ASSETS = [UniLib.resolve_asset("clockcontrolgui"), UniLib.resolve_asset("cherry"), UniLib.resolve_asset("antstroubled"), UniLib.resolve_asset("texencringe")]
+  UNREAL_CLOCK_ASSETS = [uniqol_asset("clockcontrolgui"), uniqol_asset("cherry"), uniqol_asset("antstroubled"), uniqol_asset("texencringe")]
 
   UniLib.insert_in_method(:Scene_Pokegear, :setup, "@buttons[@cmdScent=@buttons.length] = \"Spice Scent\"",
     "unless $Settings.unrealTimeDiverge == 0
