@@ -40,7 +40,7 @@ ENABLE_UNREAL_CLOCK = true
 
 if ENABLE_DEBUG_TOGGLE_OPTION
 
-  DEBUG_ENABLED = UniStringOption.new("Debug", "Debug mode toggle.", %w[Off On], proc { |value|$DEBUG = value == 1})
+  DEBUG_ENABLED = UniStringOption.new("Debug", "Debug mode toggle.", %w[Off On], proc { |value| $DEBUG = value == 1})
 
 end
 
@@ -72,7 +72,7 @@ if ENABLE_CONTRACT_MODE_OPTION
   CONTRACT_MODE = UniStringOption.new("Contract Mode", "Tech contract restrictions for the given move type.", %w[All TM UTM Tutor Egg])
   ALL_TM_MOVES = []
 
-  def get_tm_moves
+  def get_tm_moves(save)
     $cache.items.each { |_, data| ALL_TM_MOVES.push(data.checkFlag?(:tm)) if data.checkFlag?(:tm) }
   end
 
@@ -376,26 +376,29 @@ end unless UniLib.mod_included?("SWM - SnappyMenus")
 
 if ENABLE_SHADOW_CACHE
 
-  SHADOW_ICON_BMP_CACHE = {}
-  SHADOW_SPECIES_BMP_CACHE = {}
+  SHADOW_ICON_CACHE = {}
+  SHADOW_SPECIES_CACHE = {}
 
   CACHE_SHADOWS = UniStringOption.new("Cache Shadows", "Caches shadow pokemon to mitigate box/storage lagspikes.", %w[Off On])
 
   UniLib.insert_in_function(:pbPokemonIconBitmap, "species = $cache.pkmn[pokemon.species].dexnum",
-    "return SHADOW_ICON_BMP_CACHE[pokemon] if CACHE_SHADOWS == 1 and SHADOW_ICON_BMP_CACHE[pokemon] and pokemon.isShadow?")
+    "return SHADOW_ICON_CACHE[pokemon] if (CACHE_SHADOWS == 1 and SHADOW_ICON_CACHE[pokemon] and pokemon.isShadow?)")
 
   UniLib.insert_in_function_before(:pbPokemonIconBitmap, "return bitmap",
-    "SHADOW_ICON_BMP_CACHE[pokemon] = bitmap if CACHE_SHADOWS == 1 and pokemon.isShadow?")
+    "SHADOW_ICON_CACHE[pokemon] = bitmap if (CACHE_SHADOWS == 1 and pokemon.isShadow?)")
 
-  UniLib.insert_in_function(:pbLoadPokemonBitmapSpecies, "formname = $cache.pkmn[species].forms[pokemon.form]",
-  "shadow_cache = CACHE_SHADOWS == 1 and pokemon.isShadow? and !back
+  UniLib.insert_in_function(:pbLoadPokemonBitmapSpecies, :HEAD,
+  "shadow_cache = (CACHE_SHADOWS == 1) && pokemon.isShadow? && !back
   if shadow_cache
-    key = [dexnum, formname, pokemon.isShiny?, pokemon.gender, pokemon.isEgg?]
-    return SHADOW_SPECIES_BMP_CACHE[pokemon][1] if SHADOW_SPECIES_BMP_CACHE[pokemon] and SHADOW_SPECIES_BMP_CACHE[pokemon][0] == key
+    key = [pokemon.species, pokemon.form, pokemon.isShiny?, pokemon.gender, pokemon.isEgg?]
+    return SHADOW_SPECIES_CACHE[pokemon][1] if SHADOW_SPECIES_CACHE[pokemon] and SHADOW_SPECIES_CACHE[pokemon][0] == key
   end")
 
   UniLib.insert_in_function_before(:pbLoadPokemonBitmapSpecies, "return bitmap",
-    "SHADOW_SPECIES_BMP_CACHE[pokemon] = [key, bitmap] if shadow_cache")
+    "SHADOW_SPECIES_CACHE[pokemon] = [key, bitmap] if shadow_cache")
+
+  UniLib.insert_in_function_before(:pbLoadPokemonBitmapSpecies, "return bitmap",
+    "SHADOW_SPECIES_CACHE[pokemon] = [key, bitmap] if shadow_cache", 1)
 
 end
 
@@ -539,7 +542,7 @@ if ENABLE_STAT_BOOST_DISPLAY
   TRACKED_BMPS = []
 
   UniLib.insert_in_method(:PokeBattle_Scene, :pbDisposeSprites, :HEAD,
-    "TRACKED_BMPS.each { |bmp| bmp.dispose }
+    "TRACKED_BMPS.each { |bmp| bmp.dispose unless bmp.nil? }
     TRACKED_BMPS.clear")
 
   class PokemonDataBox < SpriteWrapper
