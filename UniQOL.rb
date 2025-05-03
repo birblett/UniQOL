@@ -1,29 +1,39 @@
 require "Data/Mods/UniLib/StandardAPI"
-require "Scripts/Rejuv/typetext"
 
-UniLib.include "Options"
 UniLib.verify_version(0.6, __FILE__)
+UniLib.include "Options"
+UniLib.include "Asset"
 
+# Debug
 ENABLE_DEBUG_TOGGLE_OPTION = true
+
+# Encounter Options
 ENABLE_PRISM_CHANCE_OPTION = true
-ENABLE_CONTRACT_MODE_OPTION = true
-ENABLE_CONTRACT_PENALTY_OPTION = true
-ENABLE_CONTRACT_INFO_OPTION = true
-ENABLE_EGG_COUNT_OPTION = true
-ENABLE_EGG_DESTINATION_OPTION = true
-ENABLE_HATCH_ANIMATION_OPTION = true
-ENABLE_HATCH_NICKNAME_OPTION = true
-ENABLE_ENCOUNTER_LURE_OPTION = true
+ENABLE_CONTRACT_MODE_OPTION = false
+ENABLE_CONTRACT_PENALTY_OPTION = false
+ENABLE_CONTRACT_INFO_OPTION = false
+ENABLE_ENCOUNTER_LURE_OPTION = false
+ENABLE_FULL_PARTY_ENCOUNTER_EFFECT = false
 ENABLE_AUTO_HOOK_OPTION = true
 ENABLE_INSTANT_HOOK_OPTION = true
-ENABLE_MAX_BAG_ITEM_OPTION = true
-ENABLE_TMX_ANIMATION_OPTION = true
+
+# Eggs
+ENABLE_EGG_COUNT_OPTION = false
+ENABLE_EGG_DESTINATION_OPTION = false
+ENABLE_HATCH_ANIMATION_OPTION = true
+ENABLE_HATCH_NICKNAME_OPTION = false
 ENABLE_ITEM_REPLENISH_OPTION = true
 ENABLE_EGG_RELEARN_OPTION = true
 ENABLE_PREEVO_RELEARN_OPTION = true
-ENABLE_SNAPPY_MENUS_OPTION = true
-ENABLE_SHADOW_CACHE = true
 
+# Optimization and Visuals
+ENABLE_SHADOW_CACHE = true
+ENABLE_SNAPPY_MENUS_OPTION = true
+ENABLE_TRANSPARENT_MINING_TILES = true
+ENABLE_TMX_ANIMATION_OPTION = true
+
+# Gameplay
+ENABLE_MAX_BAG_ITEM_OPTION = true
 ENABLE_HP_CHANGER = true
 ENABLE_MOVE_RELEARNER = true
 ENABLE_MASS_RELEASE = true
@@ -31,6 +41,7 @@ ENABLE_STORAGE_MODIFIER = true
 ENABLE_STAT_BOOST_DISPLAY = true
 ENABLE_TYPE_BATTLE_ICONS = true
 ENABLE_UNREAL_CLOCK = true
+ENABLE_QUICK_ACCESS = true
 
 def uniqol_asset(path)
   "Data/Mods/UniQOLAssets/#{path}"
@@ -76,7 +87,7 @@ if ENABLE_CONTRACT_MODE_OPTION
   CONTRACT_MODE = UniStringOption.new("Contract Mode", "Tech contract restrictions for the given move type.", %w[All TM UTM Tutor Egg])
   ALL_TM_MOVES = []
 
-  def get_tm_moves(save)
+  def get_tm_moves(_)
     $cache.items.each { |_, data| ALL_TM_MOVES.push(data.checkFlag?(:tm)) if data.checkFlag?(:tm) }
   end
 
@@ -137,7 +148,33 @@ if ENABLE_CONTRACT_INFO_OPTION
 
 end
 
-#============================================================ DAYCARE EGG COUNT ===========================================================#
+#====================================================== FULL PARTY ENCOUNTER EFFECT =======================================================#
+
+if ENABLE_FULL_PARTY_ENCOUNTER_EFFECT
+
+  UniLib.include "Multibility"
+
+  FULL_PARTY_ENCOUNTER_EFFECT = UniStringOption.new("Full Party Enc.", "Abilities in the party all apply to encounters.", %w[Off On])
+
+  class PokeBattle_Pokemon
+
+    FULL_PARTY_ABILITY_METHOD = instance_method(:ability) unless defined? FULL_PARTY_ABILITY_METHOD
+    def ability
+      multi = caller[0].include?("pbGenerateEncounter") || caller[0].include?("pbGenerateWildPokemon")
+      if FULL_PARTY_ENCOUNTER_EFFECT == 1 and multi
+        added_abilities = []
+        $Trainer.party.each_with_index { |pkmn, i| added_abilities += AbilityContainer.new(pkmn, pkmn.ability).abilities unless i == 0 }
+        AbilityContainer.new(self, @ability, added_abilities)
+      else
+        FULL_PARTY_ABILITY_METHOD.bind(self).(multi)
+      end
+    end
+
+  end
+
+end
+
+#=========================================================== DAYCARE EGG COUNT ============================================================#
 
 if ENABLE_EGG_COUNT_OPTION
 
@@ -278,6 +315,8 @@ if ENABLE_ITEM_REPLENISH_OPTION
 
   end
 
+  UniLib.insert_in_method(:PokeBattle_Pokemon, :setItem, :HEAD, "@itemInitial = value")
+
 end unless UniLib.mod_included?("ItemReplaceRestore")
 
 #============================================================ RELEARN EGG MOVES ===========================================================#
@@ -380,19 +419,17 @@ end unless UniLib.mod_included?("SWM - SnappyMenus")
 
 if ENABLE_SHADOW_CACHE
 
-  SHADOW_ICON_CACHE = {}
-  SHADOW_SPECIES_CACHE = {}
-
-  CACHE_SHADOWS = UniStringOption.new("Cache Shadows", "Caches shadow pokemon to mitigate box/storage lagspikes.", %w[Off On])
+  SHADOW_ICON_CACHE = {} unless defined? SHADOW_ICON_CACHE
+  SHADOW_SPECIES_CACHE = {} unless defined? SHADOW_SPECIES_CACHE
 
   UniLib.insert_in_function(:pbPokemonIconBitmap, "species = $cache.pkmn[pokemon.species].dexnum",
-    "return SHADOW_ICON_CACHE[pokemon] if (CACHE_SHADOWS == 1 and SHADOW_ICON_CACHE[pokemon] and pokemon.isShadow?)")
+    "return SHADOW_ICON_CACHE[pokemon] if (SHADOW_ICON_CACHE[pokemon] and pokemon.isShadow?)")
 
   UniLib.insert_in_function_before(:pbPokemonIconBitmap, "return bitmap",
-    "SHADOW_ICON_CACHE[pokemon] = bitmap if (CACHE_SHADOWS == 1 and pokemon.isShadow?)")
+    "SHADOW_ICON_CACHE[pokemon] = bitmap if pokemon.isShadow?")
 
   UniLib.insert_in_function(:pbLoadPokemonBitmapSpecies, :HEAD,
-  "shadow_cache = (CACHE_SHADOWS == 1) && pokemon.isShadow? && !back
+  "shadow_cache = pokemon.isShadow? && !back
   if shadow_cache
     key = [pokemon.species, pokemon.form, pokemon.isShiny?, pokemon.gender, pokemon.isEgg?]
     return SHADOW_SPECIES_CACHE[pokemon][1] if SHADOW_SPECIES_CACHE[pokemon] and SHADOW_SPECIES_CACHE[pokemon][0] == key
@@ -403,6 +440,14 @@ if ENABLE_SHADOW_CACHE
 
   UniLib.insert_in_function_before(:pbLoadPokemonBitmapSpecies, "return bitmap",
     "SHADOW_SPECIES_CACHE[pokemon] = [key, bitmap] if shadow_cache", 1)
+
+end
+
+#======================================================== TRANSPARENT MINING TILES ========================================================#
+
+if ENABLE_TRANSPARENT_MINING_TILES
+
+  Assets.redirect(:BMP, "Graphics/Pictures/Mining/tiles", "UniQOLAssets/mining_tiles")
 
 end
 
@@ -458,7 +503,7 @@ if ENABLE_MOVE_RELEARNER
   MOVE_RELEARN_BEFORE_TUTOR = UniStringOption.new("Relearn Any Time", "Allows party relearning before unlocking the move relearner.", %w[Off On])
 
   def relearn_from_menu(pkmn)
-    if MOVE_RELEARN_FREE == 1 or $PokemonBag.pbHasItem?(:HEARTSCALE) and Kernel.pbConfirmMessage("This will consume a Heart Scale. Continue?")
+    if MOVE_RELEARN_FREE == 1 or ($PokemonBag.pbHasItem?(:HEARTSCALE) and Kernel.pbConfirmMessage("This will consume a Heart Scale. Continue?"))
       pbFadeOutIn(99999) { $has_relearned = MoveRelearnerScreen.new(MoveRelearnerScene.new).pbStartScreen(pkmn); pbUpdateSceneMap }
       $updateFLHUD = true
       $PokemonBag.pbDeleteItem(:HEARTSCALE) if $has_relearned
@@ -467,8 +512,8 @@ if ENABLE_MOVE_RELEARNER
     end
   end
 
-  UniLib.add_party_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { ($game_switches[1444] || MOVE_RELEARN_BEFORE_TUTOR == 1) && MOVE_RELEARN_COMMAND >= 2 })
-  UniLib.add_box_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { ($game_switches[1445] || MOVE_RELEARN_BEFORE_TUTOR == 1) && MOVE_RELEARN_COMMAND & 1 })
+  UniLib.add_party_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { ($game_switches[1444] || MOVE_RELEARN_BEFORE_TUTOR == 1) and MOVE_RELEARN_COMMAND >= 2 })
+  UniLib.add_box_command("move_relearner", "Relearn", proc { |pkmn| relearn_from_menu(pkmn) }, proc { ($game_switches[1444] || MOVE_RELEARN_BEFORE_TUTOR == 1) and MOVE_RELEARN_COMMAND & 1 == 1 })
 
 end
 
@@ -571,6 +616,7 @@ if ENABLE_STAT_BOOST_DISPLAY
       if STAT_BOOST_DISPLAY == 1
         @double = @battler.battle.doublebattle unless defined? @double
         x_offset, y_offset = @double ? STAT_DISPLAY_POSITION_ARRAY_DOUBLE[@battler.index & 1] : STAT_DISPLAY_POSITION_ARRAY[@battler.index & 1]
+        x_offset += @battler.index & 1 == 1 ? 30 : -30 if @battler.crested
         x_offset, y_offset = x_offset - 30, y_offset if @battler.issossmon
         @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
         stats.push([0, 0, 0, 0, 0, -1, -1])
@@ -578,6 +624,7 @@ if ENABLE_STAT_BOOST_DISPLAY
       else
         @double = @battler.battle.doublebattle unless defined? @double
         x_offset, y_offset = @double ? ALT_STAT_DISPLAY_POSITION_ARRAY_DOUBLE[@battler.index & 1] : ALT_STAT_DISPLAY_POSITION_ARRAY[@battler.index & 1]
+        x_offset += @battler.index & 1 == 1 ? 22 : -22 if @battler.crested
         x_offset, y_offset = x_offset - 30, y_offset + 6 if @battler.issossmon
         @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
         stats.push([2, 0, 0, 0, 0, -1, -1])
@@ -612,8 +659,6 @@ if ENABLE_STAT_BOOST_DISPLAY
     "show_stat_stages if STAT_BOOST_DISPLAY > 0")
 
   UniLib.insert_in_method(:PokemonDataBox, :refresh, "hpGaugeSize=PBScene::HPGAUGESIZE", "show_stat_stages if STAT_BOOST_DISPLAY > 0")
-
-  UniLib.insert_in_method(:PokemonDataBox, :refresh, "if @battler.hasCrest?(illusion) || (@battler.crested && !illusion)", "megaX, megaY = megaX - 1, megaY + 20 if STAT_BOOST_DISPLAY > 0")
 
   class BossPokemonDataBox < SpriteWrapper
 
@@ -730,7 +775,7 @@ if ENABLE_UNREAL_CLOCK
       @menu_index = menu_index
     end
 
-    def main
+    def main(trans = true)
       @sprites={}
       @viewport=Viewport.new(0,0,Graphics.width,Graphics.height)
       @viewport.z=99999
@@ -761,8 +806,10 @@ if ENABLE_UNREAL_CLOCK
       $game_screen.gameTimeCurrent = Time.unrealTime_oldTimeNew(time.year,time.month, time.day, hours, minutes, time.sec) + day_offset * 86400
       cmd.dispose
       Input.update
-      $scene = Scene_Pokegear.new
-      Graphics.freeze
+      if trans
+        $scene = Scene_Pokegear.new
+        Graphics.freeze
+      end
       pbDisposeSpriteHash(@sprites)
       @viewport.dispose
     end
@@ -842,5 +889,249 @@ if ENABLE_UNREAL_CLOCK
       end
     end
   end
+
+end
+
+#============================================================== QUICK ACCESS ==============================================================#
+
+if ENABLE_QUICK_ACCESS
+
+  QUICK_ACCESS_ENABLED = UniStringOption.new("Quick Access Menu", "Adds a convenience menu bound to the A key.", %w[Off On])
+  QUICK_ACCESS_OPTIONS = ["Heal Party", "Add Item", "Add Pokémon", "Use PC", "Set Money", "Jukebox", "Spice Scent", "Move Tutor"]
+  QUICK_ACCESS_OPTIONS.insert(QUICK_ACCESS_OPTIONS.index("Move Tutor"), "Unreal Clock") if ENABLE_UNREAL_CLOCK
+
+  def quick_access_menu
+    $game_map.update
+    QuickAccessMenu.new(QuickAccessMenuScene.new).menu
+  end
+
+  class PokemonTemp
+    attr_accessor(:quick_access)
+  end
+
+  def create_number_param(range: nil, initial: nil, cancel: nil, max_digits: nil)
+    params = ChooseNumberParams.new
+    params.setRange(range[0], range[1]) if range
+    params.setInitialValue(initial) if initial
+    params.setCancelValue(cancel) if cancel
+    params.setMaxDigits(max_digits) if max_digits
+    params
+  end
+
+  class QuickAccessMenu
+
+    def initialize(scene)
+      @scene = scene
+    end
+
+    def menu
+      $qol_quick_access = UniLib.restore_data("quick_access_settings", [])
+      @scene.start(($qol_quick_access.clone.select { |e| QUICK_ACCESS_OPTIONS.include? e }) + ["Add/Remove"])
+      loop do
+        break if (command = @scene.show_commands) == -1
+        case command[1]
+        when "Heal Party"
+          $Trainer.party.each { |pkmn| pkmn.heal }
+          Kernel.pbMessage("Your Pokémon were healed.")
+          break
+        when "Add Item" then
+          @scene.hide_and_execute do
+            if (item = pbListScreen(_INTL("ADD ITEM"),ItemLister.new(0)))
+              if (qty = Kernel.pbMessageChooseNumber("Choose the number of items.", create_number_param(range: [1, BAGMAXPERSLOT], initial: 1, cancel: 0))) == 1
+                Kernel.pbReceiveItem(item)
+              elsif qty > 1
+                Kernel.pbMessage(_INTL("The item was added."))
+                $PokemonBag.pbStoreItem(item, qty)
+              end
+            end
+          end
+        when "Add Pokémon" then
+          @scene.hide_and_execute do
+            if (species = pbChooseSpeciesOrdered(1))
+              level = Kernel.pbMessageChooseNumber("Set the Pokémon's level.", create_number_param(range: [0, MAXIMUMLEVEL], initial: 5, cancel: 0))
+              form = Kernel.pbMessageChooseNumber("Set the Pokémon's form.", create_number_param(range: [0, $cache.pkmn[species].forms.length], initial: 0))
+              pbAddPokemon(species, level, true, form) if level > 0
+            end
+          end
+        when "Use PC" then @scene.hide_and_execute { pbPokeCenterPC }
+        when "Set Money" then
+          @scene.hide_and_execute do
+            $Trainer.money=Kernel.pbMessageChooseNumber("Set the player's money.", create_number_param(initial: $Trainer.money, max_digits: 6))
+            Kernel.pbMessage(_INTL("You now have ${1}.",$Trainer.money))
+          end
+        when "Jukebox" then @scene.hide_and_execute { QuickAccessJukeboxScene.new.main }
+        when "Spice Scent" then @scene.hide_and_execute { QuickAccessEncounterRateScene.new.main }
+        when "Unreal Clock" then @scene.hide_and_execute { Scene_UnrealClock.new.main(false) }
+        when "Move Tutor" then @scene.hide_and_execute { pbRelearnMoveTutorScreen }
+        when "Add/Remove"
+          @scene.hide_and_execute { QuickAccessSelectorMenu.new(QuickAccessMenuScene.new).menu }
+          @scene.commands = $qol_quick_access.clone + ["Add/Remove"]
+          @scene.refresh
+        else break
+        end
+      end
+      @scene.end
+    end
+
+  end
+
+  class QuickAccessSelectorMenu < QuickAccessMenu
+
+    def menu
+      commands = QUICK_ACCESS_OPTIONS.map { |c| "#{$qol_quick_access.include?(c) ? "+" : "-"} #{c}" }
+      @scene.start(commands)
+      loop do
+        break if (command = @scene.show_commands) == -1
+        substr = command[1][2, command[1].length]
+        if $qol_quick_access.include?(substr)
+          @scene.set_cmd(command[0], "- " + substr)
+          $qol_quick_access.delete(substr)
+        else
+          @scene.set_cmd(command[0], "+ " + substr)
+          $qol_quick_access.push(substr).sort_by!(&QUICK_ACCESS_OPTIONS.method(:index))
+        end
+      end
+      UniLib.save_data("quick_access_settings", $qol_quick_access)
+      @scene.end
+    end
+
+  end
+
+  class QuickAccessMenuScene
+
+    attr_accessor(:commands)
+
+    def start(commands)
+      @commands = commands
+      @viewport = Viewport.new(0,0,Graphics.width,Graphics.height)
+      @viewport.z = 99999
+      @sprites = {}
+      @sprites["cmdwindow"] = Window_CommandPokemon.new(commands)
+      @sprites["cmdwindow"].visible = false
+      @sprites["cmdwindow"].viewport = @viewport
+    end
+
+    def refresh
+      @sprites["cmdwindow"].dispose
+      @sprites["cmdwindow"] = Window_CommandPokemon.new(@commands)
+      @sprites["cmdwindow"].viewport = @viewport
+      @index = [@commands.length - 1, @index].min
+    end
+
+    def end
+      pbDisposeSpriteHash(@sprites)
+      @viewport.dispose
+    end
+
+    def hide_and_execute
+      @sprites["cmdwindow"].visible = false
+      yield
+      @sprites["cmdwindow"].visible = true
+    end
+
+    def set_cmd(idx, val)
+      @sprites["cmdwindow"].commands[idx] = @commands[idx] = val
+    end
+
+    def commands=(other)
+      @sprites["cmdwindow"].commands = @commands = other
+    end
+
+    def show_commands
+      cmdwindow = @sprites["cmdwindow"]
+      cmdwindow.commands = @commands
+      delay = @index ? 10 : 0
+      cmdwindow.index    = @index ? @index : 0
+      cmdwindow.visible  = true
+      loop do
+        cmdwindow.index = 0 if (delay += 1) < 3
+        pbUpdateSpriteHash(@sprites)
+        pbUpdateSceneMap
+        Graphics.update
+        Input.update
+        return -1 if Input.trigger?(Input::B)
+        return [cmdwindow.index, cmdwindow.commands[@index = cmdwindow.index]] if Input.trigger?(Input::C) || Input.trigger?(14)
+      end
+    end
+
+  end
+
+  class QuickAccessJukeboxScene < Scene_Jukebox
+
+    def main
+      @sprites={}
+      @viewport=Viewport.new(0,0,Graphics.width,Graphics.height)
+      @viewport.z=99999
+      @sprites["background"] = IconSprite.new(0,0)
+      @sprites["background"].setBitmap("Graphics/Pictures/jukeboxbg")
+      @sprites["background"].z=255
+      files= []
+      Dir.chdir("Audio/BGM/") { Dir.glob("{*.mp3,*.ogg,*.mid}") {|m| files.push(m) } }
+      files.sort!
+      files.push("Stop Playing")
+      @choices= files
+      @sprites["header"]=Window_UnformattedTextPokemon.newWithSize(_INTL("Jukebox"), 2,-18,128,64,@viewport)
+      @sprites["header"].baseColor=Color.new(248,248,248)
+      @sprites["header"].shadowColor=Color.new(0,0,0)
+      @sprites["header"].windowskin=nil
+      @sprites["command_window"] = Window_CommandPokemon.new(@choices,324)
+      @sprites["command_window"].windowskin=nil
+      @sprites["command_window"].index = @menu_index
+      @sprites["command_window"].setHW_XYZ(224,324,94,92,256)
+      Graphics.transition
+      loop do
+        Graphics.update
+        Input.update
+        update
+        break if @cancel
+      end
+      pbDisposeSpriteHash(@sprites)
+      @viewport.dispose
+    end
+
+    def update
+      pbUpdateSpriteHash(@sprites)
+      if Input.trigger?(Input::B)
+        pbPlayCancelSE()
+        @cancel = true
+        return
+      end
+      updateCustom
+    end
+  end
+
+  class QuickAccessEncounterRateScene < Scene_EncounterRate
+
+    def main
+      $game_variables[:EncounterRateModifier]=1 if !defined?($game_variables[:EncounterRateModifier]) || $game_switches[:FirstUse]!=true
+      @sprites={}
+      @viewport=Viewport.new(0,0,Graphics.width,Graphics.height)
+      @viewport.z=99999
+      @sprites["background"] = IconSprite.new(0,0)
+      @sprites["background"].setBitmap("Graphics/Pictures/SpiceScentbg")
+      @sprites["background"].z=255
+      Graphics.transition
+      params=ChooseNumberParams.new
+      params.setRange(0,9999)
+      params.setInitialValue($game_variables[:EncounterRateModifier].to_f*100)
+      params.setCancelValue($game_variables[:EncounterRateModifier].to_f*100)
+      $game_variables[:EncounterRateModifier]=Kernel.pbMessageChooseNumberCentered(params).to_f/100
+      $game_switches[:FirstUse]=true
+      $PokemonEncounters.setup($game_map.map_id) if defined?($game_map.map_id)
+      pbDisposeSpriteHash(@sprites)
+      @viewport.dispose
+    end
+  end
+
+  UniLib.insert_in_method_before(:Scene_Map, :update, "if Input.trigger?(Input::Y)",
+    "if Input.trigger?(14) and ENABLE_QUICK_ACCESS and QUICK_ACCESS_ENABLED == 1
+      $PokemonTemp.quick_access = true
+    end unless pbMapInterpreterRunning?")
+
+  UniLib.replace_in_method(:Scene_Map, :update, "if $game_temp.battle_calling",
+    "if $PokemonTemp.quick_access
+      $PokemonTemp.quick_access = false
+      quick_access_menu
+    elsif $game_temp.battle_calling")
 
 end
