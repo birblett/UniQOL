@@ -47,8 +47,11 @@ ENABLE_TYPE_BATTLE_ICONS = true
 ENABLE_UNREAL_CLOCK = true
 ENABLE_QUICK_ACCESS = true
 
+NESTED = true
+
 def uniqol_asset(path)
-  Reborn ? "patch/Mods/UniQOLAssets/#{path}" : "Data/Mods/UniQOLAssets/#{path}"
+  nested_path = NESTED ? "UniQOL/" : ""
+  Reborn ? "patch/Mods/#{nested_path}UniQOLAssets/#{path}" : "Data/Mods/#{nested_path}UniQOLAssets/#{path}"
 end
 
 #==========================================================================================================================================#
@@ -528,7 +531,7 @@ end
 
 #============================================================== MASS RELEASE ==============================================================#
 
-if ENABLE_MASS_RELEASE
+if ENABLE_MASS_RELEASE and Rejuv
 
   UniLib.insert_in_method(:PokemonStorageScene, :pbSelectBox, "if @aMultiSelectedMons.include?(ret)",
     "case Kernel.pbMessage(\"What do you want to do?\", [\"Deselect\", \"Mass Release\", \"Cancel\"], 3)
@@ -758,7 +761,7 @@ end
 
 #============================================================== UNREAL CLOCK ==============================================================#
 
-if ENABLE_UNREAL_CLOCK and Rejuv
+if ENABLE_UNREAL_CLOCK
 
   UniLib.include "Options"
 
@@ -815,7 +818,12 @@ if ENABLE_UNREAL_CLOCK and Rejuv
           break
         end
       end
-      $game_screen.gameTimeCurrent = Time.unrealTime_oldTimeNew(time.year,time.month, time.day, hours, minutes, time.sec) + day_offset * 86400
+      if Reborn
+        $game_screen.gameTimeCurrent = Time.new(time.year,time.month, time.day, hours, minutes, time.sec) + day_offset * 86400
+        $game_screen.updateClock($game_screen.gameTimeCurrent, false)
+      else
+        $game_screen.gameTimeCurrent = Time.unrealTime_oldTimeNew(time.year,time.month, time.day, hours, minutes, time.sec) + day_offset * 86400
+      end
       cmd.dispose
       Input.update
       if trans
@@ -937,15 +945,18 @@ if ENABLE_QUICK_ACCESS
     end
 
     def menu
+      pbSEPlay("menu")
       $qol_quick_access = UniLib.restore_data("quick_access_settings", [])
       @scene.start(($qol_quick_access.clone.select { |e| QUICK_ACCESS_OPTIONS.include? e }) + ["Add/Remove"])
       loop do
-        break if (command = @scene.show_commands) == -1
+        if (command = @scene.show_commands) == -1
+          pbSEPlay("menuclose")
+          break
+        end
         case command[1]
         when "Heal Party"
           $Trainer.party.each { |pkmn| pkmn.heal }
           Kernel.pbMessage("Your Pokémon were healed.")
-          break
         when "Add Item" then
           @scene.hide_and_execute do
             if (item = pbListScreen(_INTL("ADD ITEM"),ItemLister.new(0)))
@@ -1112,35 +1123,29 @@ if ENABLE_QUICK_ACCESS
     end
   end
 
-  if Rejuv
 
-    class QuickAccessEncounterRateScene < Scene_EncounterRate
+  class Scene_EncounterRate; end if Reborn
 
-      def main
-        $game_variables[:EncounterRateModifier]=1 if !defined?($game_variables[:EncounterRateModifier]) || $game_switches[:FirstUse]!=true
-        @sprites={}
-        @viewport=Viewport.new(0,0,Graphics.width,Graphics.height)
-        @viewport.z=99999
-        @sprites["background"] = IconSprite.new(0,0)
-        @sprites["background"].setBitmap("Graphics/Pictures/SpiceScentbg")
-        @sprites["background"].z=255
-        Graphics.transition
-        params=ChooseNumberParams.new
-        params.setRange(0,9999)
-        params.setInitialValue($game_variables[:EncounterRateModifier].to_f*100)
-        params.setCancelValue($game_variables[:EncounterRateModifier].to_f*100)
-        $game_variables[:EncounterRateModifier]=Kernel.pbMessageChooseNumberCentered(params).to_f/100
-        $game_switches[:FirstUse]=true
-        $PokemonEncounters.setup($game_map.map_id) if defined?($game_map.map_id)
-        pbDisposeSpriteHash(@sprites)
-        @viewport.dispose
-      end
+  class QuickAccessEncounterRateScene < Scene_EncounterRate
 
+    def main
+      $game_variables[:EncounterRateModifier]=1 if !defined?($game_variables[:EncounterRateModifier]) || $game_switches[:FirstUse]!=true
+      @sprites={}
+      @viewport=Viewport.new(0,0,Graphics.width,Graphics.height)
+      @viewport.z=99999
+      @sprites["background"] = IconSprite.new(0,0)
+      @sprites["background"].setBitmap(uniqol_asset("spicescentbg.png"))
+      @sprites["background"].z=255
+      Graphics.transition
+      params=ChooseNumberParams.new
+      params.setRange(0, 9999)
+      params.setInitialValue([$game_variables[:EncounterRateModifier].to_f*100, 9999].min)
+      params.setCancelValue($game_variables[:EncounterRateModifier].to_f*100)
+      $game_variables[:EncounterRateModifier]=Kernel.pbMessageChooseNumberCentered(params).to_f/100
+      $game_switches[:FirstUse]=true
+      pbDisposeSpriteHash(@sprites)
+      @viewport.dispose
     end
-
-  else
-
-
 
   end
 
