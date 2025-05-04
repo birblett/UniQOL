@@ -50,8 +50,7 @@ ENABLE_QUICK_ACCESS = true
 NESTED = true
 
 def uniqol_asset(path)
-  nested_path = NESTED ? "UniQOL/" : ""
-  Reborn ? "patch/Mods/#{nested_path}UniQOLAssets/#{path}" : "Data/Mods/#{nested_path}UniQOLAssets/#{path}"
+  UniLib.path "#{NESTED ? "UniQOL/" : ""}UniQOLAssets/#{path}"
 end
 
 #==========================================================================================================================================#
@@ -1089,8 +1088,15 @@ if ENABLE_QUICK_ACCESS
       @sprites["background"].setBitmap("Graphics/Pictures/jukeboxbg")
       @sprites["background"].z=255
       files= []
+      @extras = []
+      @extras_nested = []
       Dir.chdir("Audio/BGM/") { Dir.glob("{*.mp3,*.ogg,*.mid}") {|m| files.push(m) } }
+      Dir.chdir(UniLib.path("")) { Dir.glob("{*.mp3,*.ogg,*.mid}") {|m| @extras.push(m) } }
+      Dir.chdir(UniLib.path("Music")) { Dir.glob("{*.mp3,*.ogg,*.mid}") {|m| @extras_nested.push(m) } } rescue nil
       files.sort!
+      @extras.sort!
+      @extras_nested.sort!
+      files += @extras + @extras_nested
       files.push("Stop Playing")
       @choices= files
       @sprites["header"]=Window_UnformattedTextPokemon.newWithSize(_INTL("Jukebox"), 2,-18,128,64,@viewport)
@@ -1110,6 +1116,50 @@ if ENABLE_QUICK_ACCESS
       end
       pbDisposeSpriteHash(@sprites)
       @viewport.dispose
+    end
+
+    def updateCustom
+      if Input.trigger?(Input::B)
+        pbPlayCancelSE()
+        if @fromPokeGear
+          $scene = Scene_Pokegear.new(:jukebox)
+        else
+          $scene = Scene_Map.new
+        end
+        return
+      end
+      if Input.trigger?(Input::C)
+        $PokemonMap.whiteFluteUsed = false if $PokemonMap
+        $PokemonMap.blackFluteUsed = false if $PokemonMap
+        if !$Settings.volume
+          $Settings.volume = 100.0
+        end
+        if @sprites["command_window"].index == @sprites["command_window"].commands.length - 1
+          if Reborn && !@fromPokeGear
+            $game_variables[808] = 0
+            $game_map.map.bgm.name = "Nightclub- Main"
+            pbBGMPlay($game_map.map.bgm)
+          else
+            $game_system.setDefaultBGM(nil, $Settings.volume)
+            $game_system.bgm_stop
+            $game_map.autoplay
+          end
+        else
+          default = @sprites["command_window"].commands[@sprites["command_window"].index]
+          default = "../../#{UniLib.path(default)}" if @extras.include? default
+          default = "../../#{UniLib.path("Music/" + default)}" if @extras_nested.include? default
+          if Reborn && !@fromPokeGear
+            $game_variables[808] = default
+            $game_system.setDefaultBGM(nil, $Settings.volume)
+            $game_system.bgm_play(
+              pbResolveAudioFile($game_variables[808], $Settings.volume)
+            )
+          else
+            $game_system.setDefaultBGM(default, $Settings.volume)
+          end
+        end
+        @sprites["command_window"].refresh
+      end
     end
 
     def update
