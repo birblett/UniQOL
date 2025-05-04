@@ -1,4 +1,8 @@
-require "Data/Mods/UniLib/StandardAPI"
+if Reborn
+  require "patch/Mods/UniLib/StandardAPI"
+else
+  require "Data/Mods/UniLib/StandardAPI"
+end
 
 UniLib.verify_version(0.6, __FILE__)
 UniLib.include "Options"
@@ -9,19 +13,19 @@ ENABLE_DEBUG_TOGGLE_OPTION = true
 
 # Encounter Options
 ENABLE_PRISM_CHANCE_OPTION = true
-ENABLE_CONTRACT_MODE_OPTION = false
-ENABLE_CONTRACT_PENALTY_OPTION = false
-ENABLE_CONTRACT_INFO_OPTION = false
-ENABLE_ENCOUNTER_LURE_OPTION = false
-ENABLE_FULL_PARTY_ENCOUNTER_EFFECT = false
+ENABLE_CONTRACT_MODE_OPTION = true
+ENABLE_CONTRACT_PENALTY_OPTION = true
+ENABLE_CONTRACT_INFO_OPTION = true
+ENABLE_ENCOUNTER_LURE_OPTION = true
+ENABLE_FULL_PARTY_ENCOUNTER_EFFECT = true
 ENABLE_AUTO_HOOK_OPTION = true
 ENABLE_INSTANT_HOOK_OPTION = true
 
 # Eggs
-ENABLE_EGG_COUNT_OPTION = false
-ENABLE_EGG_DESTINATION_OPTION = false
+ENABLE_EGG_COUNT_OPTION = true
+ENABLE_EGG_DESTINATION_OPTION = true
 ENABLE_HATCH_ANIMATION_OPTION = true
-ENABLE_HATCH_NICKNAME_OPTION = false
+ENABLE_HATCH_NICKNAME_OPTION = true
 ENABLE_ITEM_REPLENISH_OPTION = true
 ENABLE_EGG_RELEARN_OPTION = true
 ENABLE_PREEVO_RELEARN_OPTION = true
@@ -44,7 +48,7 @@ ENABLE_UNREAL_CLOCK = true
 ENABLE_QUICK_ACCESS = true
 
 def uniqol_asset(path)
-  "Data/Mods/UniQOLAssets/#{path}"
+  Reborn ? "patch/Mods/UniQOLAssets/#{path}" : "Data/Mods/UniQOLAssets/#{path}"
 end
 
 #==========================================================================================================================================#
@@ -61,7 +65,7 @@ end
 
 #=========================================================== BLACK PRISM CHANCE ===========================================================#
 
-if ENABLE_PRISM_CHANCE_OPTION
+if ENABLE_PRISM_CHANCE_OPTION and Rejuv
 
   BLACK_PRISM_CHANCE = UniNumberOption.new("Black Prism Chance", "Black Prism chance, as a percentage", 1, 100, 1)
 
@@ -82,7 +86,7 @@ end
 
 #============================================================= CONTRACT UTILS =============================================================#
 
-if ENABLE_CONTRACT_MODE_OPTION
+if ENABLE_CONTRACT_MODE_OPTION and Rejuv
 
   CONTRACT_MODE = UniStringOption.new("Contract Mode", "Tech contract restrictions for the given move type.", %w[All TM UTM Tutor Egg])
   ALL_TM_MOVES = []
@@ -126,7 +130,7 @@ end
 
 #============================================================ CONTRACT PENALTY ============================================================#
 
-if ENABLE_CONTRACT_PENALTY_OPTION
+if ENABLE_CONTRACT_PENALTY_OPTION and Rejuv
 
   CONTRACT_PENALTY = UniStringOption.new("Contract Penalty", "Tech contract 50% catchrate penalty.", %w[Off On], nil, 1)
 
@@ -136,7 +140,7 @@ end
 
 #============================================================= CONTRACT INFO ==============================================================#
 
-if ENABLE_CONTRACT_INFO_OPTION
+if ENABLE_CONTRACT_INFO_OPTION and Rejuv
 
   CONTRACT_INFO = UniStringOption.new("Contract Info", "Tech contract-related info in battle inspector.", %w[None Count Moves])
 
@@ -150,7 +154,7 @@ end
 
 #====================================================== FULL PARTY ENCOUNTER EFFECT =======================================================#
 
-if ENABLE_FULL_PARTY_ENCOUNTER_EFFECT
+if ENABLE_FULL_PARTY_ENCOUNTER_EFFECT and Rejuv
 
   UniLib.include "Multibility"
 
@@ -180,7 +184,8 @@ if ENABLE_EGG_COUNT_OPTION
 
   DAYCARE_EGG_COUNT = UniNumberOption.new("Daycare Egg Count", "Number of eggs to generate when picking up from the daycare.", 1, 30, 1)
 
-  UniLib.insert_in_function_before(:pbDayCareGenerateEgg, "pokemon0=$PokemonGlobal.daycare[0][0]",
+  target = Reborn ? "pokemon0 = $PokemonGlobal.daycare[0][0]" : "pokemon0=$PokemonGlobal.daycare[0][0]"
+  UniLib.insert_in_function_before(:pbDayCareGenerateEgg, target,
     "egg_count = 0
     sent = 0
     boxes = []
@@ -283,7 +288,7 @@ end
 
 #=========================================================== MAX BAG ITEM COUNT ===========================================================#
 
-if ENABLE_MAX_BAG_ITEM_OPTION
+if ENABLE_MAX_BAG_ITEM_OPTION and Rejuv
 
   MAX_BAG_COUNT = UniNumberOption.new("Bag Item Max", "Maximum number to be held in bag per item.", 99, 9999, 9, 999, proc { |value| BAGMAXPERSLOT = value })
 
@@ -377,38 +382,42 @@ if ENABLE_SNAPPY_MENUS_OPTION
       Input.update
     end")
 
-  UniLib.insert_in_method(:QuestList_Scene, :fadeContent, :HEAD, proc do
-    "if SNAPPY_MENUS == 1
-      Graphics.update
-      @sprites[\"itemlist\"].contents_opacity -= 255
-      @sprites[\"overlay1\"].opacity -= 255; @sprites[\"overlay_control\"].opacity -= 255
-      @sprites[\"page_icon1\"].opacity -= 255; @sprites[\"pageIcon\"].opacity -= 255
-      return
-    end"
-  end)
+  if Rejuv
 
-  UniLib.insert_in_method(:QuestList_Scene, :showContent, :HEAD,
-    "if SNAPPY_MENUS == 1
-      Graphics.update
-      @sprites[\"itemlist\"].contents_opacity += 255
-      @sprites[\"overlay1\"].opacity += 255; @sprites[\"overlay_control\"].opacity += 255
-      @sprites[\"page_icon1\"].opacity += 255; @sprites[\"pageIcon\"].opacity += 255
-      return
-    end")
+    UniLib.insert_in_method(:QuestList_Scene, :fadeContent, :HEAD, proc do
+      "if SNAPPY_MENUS == 1
+        Graphics.update
+        @sprites[\"itemlist\"].contents_opacity -= 255
+        @sprites[\"overlay1\"].opacity -= 255; @sprites[\"overlay_control\"].opacity -= 255
+        @sprites[\"page_icon1\"].opacity -= 255; @sprites[\"pageIcon\"].opacity -= 255
+        return
+      end"
+    end)
 
-  UniLib.insert_in_method_before(:QuestList_Scene, :pbQuest, "Graphics.update",
-    "if SNAPPY_MENUS == 1
-      @sprites[\"overlay2\"].opacity += 255; @sprites[\"overlay3\"].opacity += 255; @sprites[\"page_icon2\"].opacity += 255
-      Graphics.update
-      break
-    end")
+    UniLib.insert_in_method(:QuestList_Scene, :showContent, :HEAD,
+      "if SNAPPY_MENUS == 1
+        Graphics.update
+        @sprites[\"itemlist\"].contents_opacity += 255
+        @sprites[\"overlay1\"].opacity += 255; @sprites[\"overlay_control\"].opacity += 255
+        @sprites[\"page_icon1\"].opacity += 255; @sprites[\"pageIcon\"].opacity += 255
+        return
+      end")
 
-  UniLib.insert_in_method_before(:QuestList_Scene, :pbQuest, "Graphics.update",
-    "if SNAPPY_MENUS == 1
-      @sprites[\"overlay2\"].opacity -= 255; @sprites[\"overlay3\"].opacity -= 255; @sprites[\"page_icon2\"].opacity -= 255
-      Graphics.update
-      break
-    end", 2)
+    UniLib.insert_in_method_before(:QuestList_Scene, :pbQuest, "Graphics.update",
+      "if SNAPPY_MENUS == 1
+        @sprites[\"overlay2\"].opacity += 255; @sprites[\"overlay3\"].opacity += 255; @sprites[\"page_icon2\"].opacity += 255
+        Graphics.update
+        break
+      end")
+
+    UniLib.insert_in_method_before(:QuestList_Scene, :pbQuest, "Graphics.update",
+      "if SNAPPY_MENUS == 1
+        @sprites[\"overlay2\"].opacity -= 255; @sprites[\"overlay3\"].opacity -= 255; @sprites[\"page_icon2\"].opacity -= 255
+        Graphics.update
+        break
+      end", 2)
+
+  end
 
   trans = Graphics.method(:transition)
   Graphics.define_method(:transition) { |i=0| trans.(SNAPPY_MENUS == 1 ? 0 : i) }
@@ -417,7 +426,7 @@ end unless UniLib.mod_included?("SWM - SnappyMenus")
 
 #============================================================== SHADOW CACHE ==============================================================#
 
-if ENABLE_SHADOW_CACHE
+if ENABLE_SHADOW_CACHE and Rejuv
 
   SHADOW_ICON_CACHE = {} unless defined? SHADOW_ICON_CACHE
   SHADOW_SPECIES_CACHE = {} unless defined? SHADOW_SPECIES_CACHE
@@ -556,7 +565,7 @@ if ENABLE_STORAGE_MODIFIER
 end
 
 #============================================================ STAT BOOST DISPLAY ==========================================================#
-#================================================================ REBORN PORT =============================================================#
+#================================================================= SWM PORT ===============================================================#
 
 if ENABLE_STAT_BOOST_DISPLAY
 
@@ -660,63 +669,66 @@ if ENABLE_STAT_BOOST_DISPLAY
 
   UniLib.insert_in_method(:PokemonDataBox, :refresh, "hpGaugeSize=PBScene::HPGAUGESIZE", "show_stat_stages if STAT_BOOST_DISPLAY > 0")
 
-  class BossPokemonDataBox < SpriteWrapper
+  if Rejuv
+    class BossPokemonDataBox < SpriteWrapper
 
-    def init_stat_bitmap
-      @stat_boost_bmp = SpriteWrapper.new(self.viewport)
-      @stat_boost_bmp.bitmap = STAT_BOOST_DISPLAY == 1 ? BitmapWrapper.new(50, 64) :BitmapWrapper.new(24, 57)
-      @stat_boost_bmp.z = 100
-      prev = TRACKED_BMPS[@battler.index]
-      unless prev.nil?
-        prev.bitmap.clear
-        prev.dispose
-      end
-      TRACKED_BMPS[@battler.index] = @stat_boost_bmp
-    end
-
-    def show_stat_stages
-      return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or @battler.nil?
-      @stat_boost_bmp.bitmap.clear
-      return unless self.visible
-      stats = []
-      if STAT_BOOST_DISPLAY == 1
-        x_offset, y_offset = 290, 10
-        @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
-        stats = [[0, 0, 0, 0, 0, -1, -1]]
-        STAT_DISPLAY_TYPES.map { |type| @battler.stages[type]}.each_with_index { |stage, i| stats.push([1, STAT_DISPLAY_POSITION_MAP[i][0], STAT_DISPLAY_POSITION_MAP[i][1], stage > 0 ? 0 : 22, (stage.abs - 1) * 22, 22, 22]) unless stage == 0 }
-      else
-        x_offset, y_offset = 298, 28
-        @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
-        stats.push([2, 0, 0, 0, 0, -1, -1])
-        (1..7).map { |type| @battler.stages[type] }.each_with_index do |stage, i|
-          if stage == 0
-            stage_offset = 0
-          else
-            stage_offset = stage > 0 ? 12 : 24
-          end
-          stats.push([3, 2, i * 8 + 2, stage_offset, i * 8, 11, 5])
-          stats.push([4, 15, i * 8 + 2, stage < 0 ? 8 : 0, stage.abs * 6, 7, 5])
+      def init_stat_bitmap
+        @stat_boost_bmp = SpriteWrapper.new(self.viewport)
+        @stat_boost_bmp.bitmap = STAT_BOOST_DISPLAY == 1 ? BitmapWrapper.new(50, 64) :BitmapWrapper.new(24, 57)
+        @stat_boost_bmp.z = 100
+        prev = TRACKED_BMPS[@battler.index]
+        unless prev.nil?
+          prev.bitmap.clear
+          prev.dispose
         end
+        TRACKED_BMPS[@battler.index] = @stat_boost_bmp
       end
-      draw_stats(@stat_boost_bmp.bitmap, stats)
+
+      def show_stat_stages
+        return if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed? or @battler.nil?
+        @stat_boost_bmp.bitmap.clear
+        return unless self.visible
+        stats = []
+        if STAT_BOOST_DISPLAY == 1
+          x_offset, y_offset = 290, 10
+          @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
+          stats = [[0, 0, 0, 0, 0, -1, -1]]
+          STAT_DISPLAY_TYPES.map { |type| @battler.stages[type]}.each_with_index { |stage, i| stats.push([1, STAT_DISPLAY_POSITION_MAP[i][0], STAT_DISPLAY_POSITION_MAP[i][1], stage > 0 ? 0 : 22, (stage.abs - 1) * 22, 22, 22]) unless stage == 0 }
+        else
+          x_offset, y_offset = 298, 28
+          @stat_boost_bmp.x, @stat_boost_bmp.y = self.x + x_offset, self.y + y_offset
+          stats.push([2, 0, 0, 0, 0, -1, -1])
+          (1..7).map { |type| @battler.stages[type] }.each_with_index do |stage, i|
+            if stage == 0
+              stage_offset = 0
+            else
+              stage_offset = stage > 0 ? 12 : 24
+            end
+            stats.push([3, 2, i * 8 + 2, stage_offset, i * 8, 11, 5])
+            stats.push([4, 15, i * 8 + 2, stage < 0 ? 8 : 0, stage.abs * 6, 7, 5])
+          end
+        end
+        draw_stats(@stat_boost_bmp.bitmap, stats)
+      end
     end
+
+    UniLib.insert_in_method(:BossPokemonDataBox, :update, "self.x+=8",
+      "if STAT_BOOST_DISPLAY > 0
+        init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
+        show_stat_stages
+      end")
+
+    UniLib.insert_in_method(:BossPokemonDataBox, :update, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY > 0")
+
+    UniLib.insert_in_method(:BossPokemonDataBox, :refresh, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY > 0")
+
   end
-
-  UniLib.insert_in_method(:BossPokemonDataBox, :update, "self.x+=8",
-    "if STAT_BOOST_DISPLAY > 0
-      init_stat_bitmap if !defined? @stat_boost_bmp or @stat_boost_bmp.disposed?
-      show_stat_stages
-    end")
-
-  UniLib.insert_in_method(:BossPokemonDataBox, :update, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY > 0")
-
-  UniLib.insert_in_method(:BossPokemonDataBox, :refresh, :TAIL, "show_stat_stages if STAT_BOOST_DISPLAY > 0")
 
 end
 
 #============================================================ TYPE BATTLE ICONS ===========================================================#
 
-if ENABLE_TYPE_BATTLE_ICONS
+if ENABLE_TYPE_BATTLE_ICONS and Rejuv
 
   TYPE_ICONS = UniStringOption.new("Type Icons", "Type display in-battle.", %w[Off On], nil, 1)
   TYPE_ICON_X = UniNumberOption.new("Type Icon X", "Horizontal offset of type battle icons.", 0, 200, 1, 12)
@@ -746,7 +758,7 @@ end
 
 #============================================================== UNREAL CLOCK ==============================================================#
 
-if ENABLE_UNREAL_CLOCK
+if ENABLE_UNREAL_CLOCK and Rejuv
 
   UniLib.include "Options"
 
@@ -1100,27 +1112,36 @@ if ENABLE_QUICK_ACCESS
     end
   end
 
-  class QuickAccessEncounterRateScene < Scene_EncounterRate
+  if Rejuv
 
-    def main
-      $game_variables[:EncounterRateModifier]=1 if !defined?($game_variables[:EncounterRateModifier]) || $game_switches[:FirstUse]!=true
-      @sprites={}
-      @viewport=Viewport.new(0,0,Graphics.width,Graphics.height)
-      @viewport.z=99999
-      @sprites["background"] = IconSprite.new(0,0)
-      @sprites["background"].setBitmap("Graphics/Pictures/SpiceScentbg")
-      @sprites["background"].z=255
-      Graphics.transition
-      params=ChooseNumberParams.new
-      params.setRange(0,9999)
-      params.setInitialValue($game_variables[:EncounterRateModifier].to_f*100)
-      params.setCancelValue($game_variables[:EncounterRateModifier].to_f*100)
-      $game_variables[:EncounterRateModifier]=Kernel.pbMessageChooseNumberCentered(params).to_f/100
-      $game_switches[:FirstUse]=true
-      $PokemonEncounters.setup($game_map.map_id) if defined?($game_map.map_id)
-      pbDisposeSpriteHash(@sprites)
-      @viewport.dispose
+    class QuickAccessEncounterRateScene < Scene_EncounterRate
+
+      def main
+        $game_variables[:EncounterRateModifier]=1 if !defined?($game_variables[:EncounterRateModifier]) || $game_switches[:FirstUse]!=true
+        @sprites={}
+        @viewport=Viewport.new(0,0,Graphics.width,Graphics.height)
+        @viewport.z=99999
+        @sprites["background"] = IconSprite.new(0,0)
+        @sprites["background"].setBitmap("Graphics/Pictures/SpiceScentbg")
+        @sprites["background"].z=255
+        Graphics.transition
+        params=ChooseNumberParams.new
+        params.setRange(0,9999)
+        params.setInitialValue($game_variables[:EncounterRateModifier].to_f*100)
+        params.setCancelValue($game_variables[:EncounterRateModifier].to_f*100)
+        $game_variables[:EncounterRateModifier]=Kernel.pbMessageChooseNumberCentered(params).to_f/100
+        $game_switches[:FirstUse]=true
+        $PokemonEncounters.setup($game_map.map_id) if defined?($game_map.map_id)
+        pbDisposeSpriteHash(@sprites)
+        @viewport.dispose
+      end
+
     end
+
+  else
+
+
+
   end
 
   UniLib.insert_in_method_before(:Scene_Map, :update, "if Input.trigger?(Input::Y)",
