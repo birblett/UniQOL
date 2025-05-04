@@ -983,7 +983,13 @@ if ENABLE_QUICK_ACCESS
           end
         when "Jukebox" then @scene.hide_and_execute { QuickAccessJukeboxScene.new.main }
         when "Spice Scent" then @scene.hide_and_execute { QuickAccessEncounterRateScene.new.main }
-        when "Unreal Clock" then @scene.hide_and_execute { Scene_UnrealClock.new.main(false) }
+        when "Unreal Clock" then @scene.hide_and_execute {
+          if $Settings.unrealTimeDiverge == 1
+            Scene_UnrealClock.new.main(false)
+          else
+            Kernel.pbMessage("This requires Unreal Time to be active!")
+          end
+        }
         when "Move Tutor" then @scene.hide_and_execute { pbRelearnMoveTutorScreen }
         when "Add/Remove"
           @scene.hide_and_execute { QuickAccessSelectorMenu.new(QuickAccessMenuScene.new).menu }
