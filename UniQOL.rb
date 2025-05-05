@@ -776,7 +776,8 @@ if ENABLE_UNREAL_CLOCK
       @buttons[@cmdUnrealClock = @buttons.length] = \"Unreal Clock\"
     end")
 
-  UniLib.insert_in_method_before(:Scene_Pokegear, :checkChoice, "if ($game_switches[:NotPlayerCharacter] == false ||  $game_switches[:InterceptorsWish] == true)",
+  target = Reborn ? :TAIL : "if ($game_switches[:NotPlayerCharacter] == false ||  $game_switches[:InterceptorsWish] == true)"
+  UniLib.insert_in_method_before(:Scene_Pokegear, :checkChoice, target,
     "if @cmdUnrealClock>=0 && @sprites[\"command_window\"].index==@cmdUnrealClock
       pbPlayDecisionSE()
       $scene = Scene_UnrealClock.new
@@ -1087,12 +1088,12 @@ if ENABLE_QUICK_ACCESS
   class QuickAccessJukeboxScene < Scene_Jukebox
 
     def main
-      @sprites={}
-      @viewport=Viewport.new(0,0,Graphics.width,Graphics.height)
-      @viewport.z=99999
+      @sprites = {}
+      @viewport = Viewport.new(0,0,Graphics.width,Graphics.height)
+      @viewport.z = 99999
       @sprites["background"] = IconSprite.new(0,0)
       @sprites["background"].setBitmap("Graphics/Pictures/jukeboxbg")
-      @sprites["background"].z=255
+      @sprites["background"].z = 255
       files= []
       @extras = []
       @extras_nested = []
@@ -1105,12 +1106,12 @@ if ENABLE_QUICK_ACCESS
       files += @extras + @extras_nested
       files.push("Stop Playing")
       @choices= files
-      @sprites["header"]=Window_UnformattedTextPokemon.newWithSize(_INTL("Jukebox"), 2,-18,128,64,@viewport)
-      @sprites["header"].baseColor=Color.new(248,248,248)
-      @sprites["header"].shadowColor=Color.new(0,0,0)
-      @sprites["header"].windowskin=nil
+      @sprites["header"] = Window_UnformattedTextPokemon.newWithSize(_INTL("Jukebox"), 2,-18,128,64,@viewport)
+      @sprites["header"].baseColor = Color.new(248,248,248)
+      @sprites["header"].shadowColor = Color.new(0,0,0)
+      @sprites["header"].windowskin = nil
       @sprites["command_window"] = Window_CommandPokemon.new(@choices,324)
-      @sprites["command_window"].windowskin=nil
+      @sprites["command_window"].windowskin = nil
       @sprites["command_window"].index = @menu_index
       @sprites["command_window"].setHW_XYZ(224,324,94,92,256)
       Graphics.transition
