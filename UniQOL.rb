@@ -39,6 +39,7 @@ ENABLE_TMX_ANIMATION_OPTION = true
 # Gameplay
 ENABLE_MAX_BAG_ITEM_OPTION = true
 ENABLE_HP_CHANGER = true
+ENABLE_ITEM_RADAR = true
 ENABLE_MOVE_RELEARNER = true
 ENABLE_MASS_RELEASE = true
 ENABLE_STORAGE_MODIFIER = true
@@ -281,9 +282,11 @@ if ENABLE_INSTANT_HOOK_OPTION
 
   INSTANT_HOOK = UniStringOption.new("Instant Hook", "Fishing hook triggers instantly.", %w[Off On])
 
-  UniLib.replace_in_function(:pbFishing, "time=2+rand(10)", "time = INSTANT_HOOK == 0 ? 2 + rand(10) : 0")
+  target = Reborn ? "time = 2 + rand(10)" : "time=2+rand(10)"
+  UniLib.replace_in_function(:pbFishing, target, "time = INSTANT_HOOK == 0 ? 2 + rand(10) : 0")
 
-  UniLib.replace_in_function(:pbFishing, "if !pbWaitForInput(msgwindow,message+_INTL(\"\\r\\nOh!  A bite!\"),frames)",
+  target = Reborn ? "if !pbWaitForInput(msgwindow, message + _INTL(\"\\r\\nOh!  A bite!\"), frames)" : "if !pbWaitForInput(msgwindow,message+_INTL(\"\\r\\nOh!  A bite!\"),frames)"
+  UniLib.replace_in_function(:pbFishing, target,
     "unless INSTANT_HOOK == 1 ? pbWaitForInput(msgwindow, _INTL(\"Oh!  A bite!\"), frames) : pbWaitForInput(msgwindow, message + _INTL(\"\\r\\nOh!  A bite!\"), frames)")
 
 end
@@ -333,8 +336,10 @@ if ENABLE_EGG_RELEARN_OPTION
 
   RELEARN_EGG_MOVES = UniStringOption.new("Egg Relearn", "Egg moves in move relearner before Fly.", %w[Off On])
 
-  UniLib.replace_in_function(:pbGetRelearnableMoves, "moves= tmoves+pokemon.getEggMoveList(true)+moves if Rejuv && $PokemonBag.pbHasItem?(:HM02)",
-    "moves = tmoves + pokemon.getEggMoveList(true) + moves if RELEARN_EGG_MOVES == 1 or Rejuv && $PokemonBag.pbHasItem?(:HM02)", 0)
+  target = Reborn ? "moves = tmoves + pokemon.getEggMoveList(true) + moves if Rejuv && $PokemonBag.pbHasItem?(:HM02)" : "moves= tmoves+pokemon.getEggMoveList(true)+moves if Rejuv && $PokemonBag.pbHasItem?(:HM02)"
+  UniLib.replace_in_function(:pbGetRelearnableMoves, target,
+    "eggs = RELEARN_EGG_MOVES == 1 or Rejuv && $PokemonBag.pbHasItem?(:HM02)
+    moves = tmoves + pokemon.getEggMoveList(true) + moves if eggs", 0)
 
 end unless UniLib.mod_included?("Learn_Egg_moves")
 
@@ -343,10 +348,10 @@ end unless UniLib.mod_included?("Learn_Egg_moves")
 
 if ENABLE_PREEVO_RELEARN_OPTION
 
-  RELEARN_EGG_MOVES = UniStringOption.new("PreEvo Relearn", "Learn moves from pre-evolutions.", %w[Off On])
+  PREVO_RELEARN_OPTION = UniStringOption.new("PreEvo Relearn", "Learn moves from pre-evolutions.", %w[Off On])
 
   UniLib.insert_in_function(:pbEachNaturalMove, :TAIL,
-    "if RELEARN_EGG_MOVES == 1
+    "if PREVO_RELEARN_OPTION == 1
       prevo, cache = pbGetPreviousForm(pokemon.species,pokemon.form), $cache.pkmn
       until prevo[0].nil? or prevo[1].nil? or %w[Mega Primal].include?(name = cache[prevo[0]].forms[prevo[1]])
         ((prevo[1] == 0 || (cache[prevo[0]].formData.dig(name,:Moveset).nil? && (prevo[1] = 0) == 0)) ?
@@ -503,7 +508,16 @@ if ENABLE_HP_CHANGER
 
 end
 
-#============================================================= MOVE RELEARNER =============================================================#
+#================================================================ ITEM RADAR ==============================================================#
+#================================================================= SWM PORT ===============================================================#
+
+if ENABLE_ITEM_RADAR
+
+
+
+end
+
+#============================================================== MOVE RELEARNER ============================================================#
 
 if ENABLE_MOVE_RELEARNER
 
@@ -511,7 +525,7 @@ if ENABLE_MOVE_RELEARNER
 
   MOVE_RELEARN_FREE = UniStringOption.new("Free Relearning", "Party/PC relearn without costing a heart scale", %w[Off On])
 
-  MOVE_RELEARN_BEFORE_TUTOR = UniStringOption.new("Relearn Any Time", "Allows party relearning before unlocking the move relearner.", %w[Off On])
+  MOVE_RELEARN_BEFORE_TUTOR = Reborn ? 1 : UniStringOption.new("Relearn Any Time", "Allows party relearning before unlocking the move relearner.", %w[Off On])
 
   def relearn_from_menu(pkmn)
     if MOVE_RELEARN_FREE == 1 or ($PokemonBag.pbHasItem?(:HEARTSCALE) and Kernel.pbConfirmMessage("This will consume a Heart Scale. Continue?"))
@@ -552,10 +566,10 @@ end
 
 if ENABLE_STORAGE_MODIFIER
 
-  STORAGE_MODIFIER = UniStringOption.new("Storage Mod Key", "Hold Next Page keybind to withdraw/store without having to go through a menu.", %w[Off On], nil, 1)
+  STORAGE_MODIFIER = UniStringOption.new("Storage Mod Key", "Hold Pagedown or Run keybinds to withdraw/store without having to go through a menu.", %w[Off On], nil, 1)
 
   UniLib.insert_in_method_before(:PokemonStorageScreen, :pbStartScreen, "if @scene.quickswap",
-    "if STORAGE_MODIFIER == 1 and Input.press?(Input::PAGEDOWN)
+    "if STORAGE_MODIFIER == 1 and (Input.press?(Input::D) or Input.press?(Input.press?(Input::D)))
       if selected[0]==-1
         pbStore(selected,@heldpkmn)
       else
@@ -569,7 +583,7 @@ end
 #============================================================ STAT BOOST DISPLAY ==========================================================#
 #================================================================= SWM PORT ===============================================================#
 
-if ENABLE_STAT_BOOST_DISPLAY
+if ENABLE_STAT_BOOST_DISPLAY and Rejuv
 
   STAT_BOOST_DISPLAY = UniStringOption.new("Stat Boost Disp.", "Stat change display while in battle.", %w[Off Reborn Compact], nil, 1)
   STAT_DISPLAY_POSITION_ARRAY = [[-24, 6], [220, 10]]
