@@ -293,7 +293,7 @@ end
 
 #=========================================================== MAX BAG ITEM COUNT ===========================================================#
 
-if ENABLE_MAX_BAG_ITEM_OPTION and Rejuv
+if ENABLE_MAX_BAG_ITEM_OPTION
 
   MAX_BAG_COUNT = UniNumberOption.new("Bag Item Max", "Maximum number to be held in bag per item.", 99, 9999, 9, 999, proc { |value| BAGMAXPERSLOT = value })
 
@@ -389,6 +389,12 @@ if ENABLE_SNAPPY_MENUS_OPTION
       Input.update
     end")
 
+  if Reborn
+
+    Scene_Pokegear
+
+  end
+
   if Rejuv
 
     UniLib.insert_in_method(:QuestList_Scene, :fadeContent, :HEAD, proc do
@@ -426,8 +432,8 @@ if ENABLE_SNAPPY_MENUS_OPTION
 
   end
 
-  trans = Graphics.method(:transition)
-  Graphics.define_method(:transition) { |i=0| trans.(SNAPPY_MENUS == 1 ? 0 : i) }
+  S_TRANS = Graphics.singleton_method(:transition) unless defined? S_TRANS
+  Graphics.define_singleton_method(:transition) { |i=0| UniLib.dev_log("gap"); S_TRANS.(SNAPPY_MENUS == 1 ? 0 : i) }
 
 end unless UniLib.mod_included?("SWM - SnappyMenus")
 
