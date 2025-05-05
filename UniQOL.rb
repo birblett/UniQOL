@@ -752,10 +752,10 @@ if ENABLE_TYPE_BATTLE_ICONS
   target = Reborn ? "pbShowStatsBoosts if loopstop == false" : "aShowStatBoosts if $DEV"
   UniLib.insert_in_method(:PokemonDataBox, :refresh, target,
     "@double = @battler.battle.doublebattle unless defined? @double
-    offset_x, offset_y = TYPE_ICON_X - 36, TYPE_ICON_Y + (@double ? -10 : 0)
-    offset_y = offset_y + 3 if @battler.index & 1 == 1
+    offset_x, offset_y = TYPE_ICON_X - 36, TYPE_ICON_Y + (@double || Reborn ? -10 : 0)
+    offset_y = offset_y + 3 if @battler.index & 1 == 1 and Rejuv
     offset_x, offset_y = offset_x - 4, offset_y + 40 if @battler.issossmon
-    draw_types(self.bitmap, (@battler.effects[:Illusion].nil? ? [@battler.type1, @battler.type2] : [@battler.effects[:Illusion].type1, @battler.effects[:Illusion].type2]).reduce([]) { |types, type| type.nil? ? types : types << [type, #{Reborn ? "@spritebaseX" : "sbX"} + (offset_x += 32), offset_y, 0, 0, -1, -1]}) if TYPE_ICONS == 1")
+    draw_types(self.bitmap, (@battler.effects[:Illusion].nil? ? [@battler.type1, @battler.type2] : [@battler.effects[:Illusion].type1, @battler.effects[:Illusion].type2]).reduce([]) { |types, type| type.nil? ? types : types << [type, (Reborn ? @spritebaseX : sbX) + (offset_x += 32), offset_y, 0, 0, -1, -1]}) if TYPE_ICONS == 1")
 
 end
 
