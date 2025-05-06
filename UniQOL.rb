@@ -389,23 +389,16 @@ if ENABLE_SNAPPY_MENUS_OPTION
       Input.update
     end")
 
-  if Reborn
-
-    Scene_Pokegear
-
-  end
-
   if Rejuv
 
-    UniLib.insert_in_method(:QuestList_Scene, :fadeContent, :HEAD, proc do
+    UniLib.insert_in_method(:QuestList_Scene, :fadeContent, :HEAD,
       "if SNAPPY_MENUS == 1
         Graphics.update
         @sprites[\"itemlist\"].contents_opacity -= 255
         @sprites[\"overlay1\"].opacity -= 255; @sprites[\"overlay_control\"].opacity -= 255
         @sprites[\"page_icon1\"].opacity -= 255; @sprites[\"pageIcon\"].opacity -= 255
         return
-      end"
-    end)
+      end")
 
     UniLib.insert_in_method(:QuestList_Scene, :showContent, :HEAD,
       "if SNAPPY_MENUS == 1
@@ -433,7 +426,7 @@ if ENABLE_SNAPPY_MENUS_OPTION
   end
 
   S_TRANS = Graphics.singleton_method(:transition) unless defined? S_TRANS
-  Graphics.define_singleton_method(:transition) { |i=0| UniLib.dev_log("gap"); S_TRANS.(SNAPPY_MENUS == 1 ? 0 : i) }
+  Graphics.define_singleton_method(:transition) { |i=0| S_TRANS.(SNAPPY_MENUS == 1 ? 0 : i) }
 
 end unless UniLib.mod_included?("SWM - SnappyMenus")
 
