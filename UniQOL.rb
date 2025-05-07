@@ -157,7 +157,7 @@ end
 
 #====================================================== FULL PARTY ENCOUNTER EFFECT =======================================================#
 
-if ENABLE_FULL_PARTY_ENCOUNTER_EFFECT and Rejuv
+if ENABLE_FULL_PARTY_ENCOUNTER_EFFECT
 
   UniLib.include "Multibility"
 
@@ -234,9 +234,11 @@ if ENABLE_HATCH_ANIMATION_OPTION
 
   NO_HATCH_SCENE = UniStringOption.new("Egg Hatch Anim.", "Egg hatch animation.", %w[Off On], nil, 1)
 
-  UniLib.replace_in_function(:pbHatch, "val=pbHatchAnimation(pokemon)", "val = NO_HATCH_SCENE == 0 or pbHatchAnimation(pokemon)")
+  target = Reborn ? "val = pbHatchAnimation(pokemon)" : "val=pbHatchAnimation(pokemon)"
+  UniLib.replace_in_function(:pbHatch, target, "val = NO_HATCH_SCENE == 0 or pbHatchAnimation(pokemon)")
 
-  UniLib.insert_in_function(:pbHatch, "puts val",
+  target = Reborn ? "val = pbHatchAnimation(pokemon)" : "puts val"
+  UniLib.insert_in_function(:pbHatch, target,
     "if NO_HATCH_SCENE == 0
       Kernel.pbMessage(_INTL(\"{1} hatched from the Egg!\", speciesname))
       if Kernel.pbConfirmMessage(_INTL(\"Would you like to nickname the newly hatched {1}?\", speciesname))
@@ -253,7 +255,9 @@ if ENABLE_HATCH_NICKNAME_OPTION
 
   HATCH_NICKNAME = UniStringOption.new("Egg Name Prompt", "Prompt for nickname when an egg hatches.", %w[Off On], nil, 1)
 
-  UniLib.replace_in_method(:PokemonEggHatchScene, :pbMain, "if Kernel.pbConfirmMessage(_INTL(\"Would you like to nickname the newly hatched {1}?\",@pokemon.name))", "if HATCH_NICKNAME == 1 and Kernel.pbConfirmMessage(_INTL(\"Would you like to nickname the newly hatched {1}?\",@pokemon.name))")
+  target = Reborn ? "if Kernel.pbConfirmMessage(_INTL(\"Would you like to nickname the newly hatched {1}?\", @pokemon.name))" :
+             "if Kernel.pbConfirmMessage(_INTL(\"Would you like to nickname the newly hatched {1}?\",@pokemon.name))"
+  UniLib.replace_in_method(:PokemonEggHatchScene, :pbMain, target, "if HATCH_NICKNAME == 1 and Kernel.pbConfirmMessage(_INTL(\"Would you like to nickname the newly hatched {1}?\",@pokemon.name))")
 
 end
 
@@ -426,7 +430,7 @@ if ENABLE_SNAPPY_MENUS_OPTION
   end
 
   S_TRANS = Graphics.singleton_method(:transition) unless defined? S_TRANS
-  Graphics.define_singleton_method(:transition) { |i=0| S_TRANS.(SNAPPY_MENUS == 1 ? 0 : i) }
+  Graphics.define_singleton_method(:transition) { |i=0, s=""| S_TRANS.(SNAPPY_MENUS == 1 ? 0 : i, s) }
 
 end unless UniLib.mod_included?("SWM - SnappyMenus")
 
