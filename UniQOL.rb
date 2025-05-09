@@ -50,9 +50,9 @@ ENABLE_QUICK_ACCESS = true
 
 NESTED = true
 
-def uniqol_asset(path)
-  UniLib.path "#{NESTED ? "UniQOL/" : ""}UniQOLAssets/#{path}"
-end
+def uniqol_asset_relative(path) = "#{NESTED ? "UniQOL/" : ""}UniQOLAssets/#{path}"
+
+def uniqol_asset(path) = UniLib.path "#{NESTED ? "UniQOL/" : ""}UniQOLAssets/#{path}"
 
 #==========================================================================================================================================#
 #================================================================ OPTIONS =================================================================#
@@ -466,7 +466,7 @@ end
 
 if ENABLE_TRANSPARENT_MINING_TILES
 
-  Assets.redirect(:BMP, "Graphics/Pictures/Mining/tiles", "UniQOLAssets/mining_tiles")
+  Assets.redirect(:BMP, "Graphics/Pictures/Mining/tiles", uniqol_asset_relative("mining_tiles"))
 
 end
 
@@ -935,6 +935,7 @@ end
 if ENABLE_QUICK_ACCESS
 
   QUICK_ACCESS_ENABLED = UniStringOption.new("Quick Access Menu", "Adds a convenience menu bound to the A key.", %w[Off On])
+  QUICK_ACCESS_EXIT_AFTER = UniStringOption.new("Quick Access Exit", "Whether quick access menu should close after performing an action.", %w[None Auto], nil, 1)
   QUICK_ACCESS_OPTIONS = ["Heal Party", "Add Item", "Add Pokémon", "Use PC", "Set Money", "Jukebox", "Spice Scent", "Move Tutor"]
   QUICK_ACCESS_OPTIONS.insert(QUICK_ACCESS_OPTIONS.index("Move Tutor"), "Unreal Clock") if ENABLE_UNREAL_CLOCK
 
@@ -975,8 +976,9 @@ if ENABLE_QUICK_ACCESS
         when "Heal Party"
           $Trainer.party.each { |pkmn| pkmn.heal }
           Kernel.pbMessage("Your Pokémon were healed.")
-        when "Add Item" then
-          @scene.hide_and_execute do
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Add Item"
+          @scene.hide_and_execute {
             if (item = pbListScreen(_INTL("ADD ITEM"),ItemLister.new(0)))
               if (qty = Kernel.pbMessageChooseNumber("Choose the number of items.", create_number_param(range: [1, BAGMAXPERSLOT], initial: 1, cancel: 0))) == 1
                 Kernel.pbReceiveItem(item)
@@ -985,31 +987,44 @@ if ENABLE_QUICK_ACCESS
                 $PokemonBag.pbStoreItem(item, qty)
               end
             end
-          end
-        when "Add Pokémon" then
-          @scene.hide_and_execute do
+          }
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Add Pokémon"
+          @scene.hide_and_execute {
             if (species = pbChooseSpeciesOrdered(1))
               level = Kernel.pbMessageChooseNumber("Set the Pokémon's level.", create_number_param(range: [0, MAXIMUMLEVEL], initial: 5, cancel: 0))
               form = Kernel.pbMessageChooseNumber("Set the Pokémon's form.", create_number_param(range: [0, $cache.pkmn[species].forms.length], initial: 0))
               pbAddPokemon(species, level, true, form) if level > 0
             end
-          end
-        when "Use PC" then @scene.hide_and_execute { pbPokeCenterPC }
-        when "Set Money" then
+          }
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Use PC"
+          @scene.hide_and_execute { pbPokeCenterPC }
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Set Money"
           @scene.hide_and_execute do
             $Trainer.money=Kernel.pbMessageChooseNumber("Set the player's money.", create_number_param(initial: $Trainer.money, max_digits: 6))
             Kernel.pbMessage(_INTL("You now have ${1}.",$Trainer.money))
           end
-        when "Jukebox" then @scene.hide_and_execute { QuickAccessJukeboxScene.new.main }
-        when "Spice Scent" then @scene.hide_and_execute { QuickAccessEncounterRateScene.new.main }
-        when "Unreal Clock" then @scene.hide_and_execute {
-          if $Settings.unrealTimeDiverge == 1
-            Scene_UnrealClock.new.main(false)
-          else
-            Kernel.pbMessage("This requires Unreal Time to be active!")
-          end
-        }
-        when "Move Tutor" then @scene.hide_and_execute { pbRelearnMoveTutorScreen }
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Jukebox"
+          @scene.hide_and_execute { QuickAccessJukeboxScene.new.main }
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Spice Scent"
+          @scene.hide_and_execute { QuickAccessEncounterRateScene.new.main }
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Unreal Clock"
+          @scene.hide_and_execute {
+            if $Settings.unrealTimeDiverge == 1
+              Scene_UnrealClock.new.main(false)
+            else
+              Kernel.pbMessage("This requires Unreal Time to be active!")
+            end
+          }
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Move Tutor"
+          @scene.hide_and_execute { pbRelearnMoveTutorScreen }
+          break if QUICK_ACCESS_EXIT_AFTER == 1
         when "Add/Remove"
           @scene.hide_and_execute { QuickAccessSelectorMenu.new(QuickAccessMenuScene.new).menu }
           @scene.commands = $qol_quick_access.clone + ["Add/Remove"]
