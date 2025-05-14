@@ -1,7 +1,3 @@
-UniLib.verify_version(0.6, __FILE__)
-UniLib.include "Options"
-UniLib.include "Asset"
-
 # Debug
 ENABLE_DEBUG_TOGGLE_OPTION = true
 
@@ -948,7 +944,7 @@ if ENABLE_QUICK_ACCESS
 
   QUICK_ACCESS_ENABLED = UniStringOption.new("Quick Access Menu", "Adds a convenience menu bound to the A key.", %w[Off On])
   QUICK_ACCESS_EXIT_AFTER = UniStringOption.new("Quick Access Exit", "Whether quick access menu should close after performing an action.", %w[None Auto], nil, 1)
-  QUICK_ACCESS_OPTIONS = ["Heal Party", "Add Item", "Add Pokémon", "Use PC", "Set Money", "Jukebox", "Spice Scent", "Move Tutor"]
+  QUICK_ACCESS_OPTIONS = ["Heal Party", "Use PC", "Fly", "Add Item", "Add Pokémon", "Set Money", "Jukebox", "Spice Scent", "Move Tutor"]
   QUICK_ACCESS_OPTIONS.insert(QUICK_ACCESS_OPTIONS.index("Move Tutor"), "Unreal Clock") if ENABLE_UNREAL_CLOCK
 
   def quick_access_menu
@@ -975,10 +971,18 @@ if ENABLE_QUICK_ACCESS
       @scene = scene
     end
 
+    def option_select
+      arr = $qol_quick_access.clone
+      arr -= ["Fly"] if !(HIDDENMOVESCOUNTBADGES ? $Trainer.numbadges >= BADGEFORFLY : $Trainer.badges[BADGEFORFLY]) ||
+                        (Rejuv and inPast? || $game_switches[:NotPlayerCharacter]) || $game_switches[:NoFlyZone] ||
+                        $game_player.pbHasDependentEvents? || $game_switches[:Riding_Tauros] || !$cache.mapdata[$game_map.map_id].Outdoor
+      (arr.select { |e| QUICK_ACCESS_OPTIONS.include? e }) + ["Add/Remove"]
+    end
+
     def menu
       pbSEPlay("menu")
       $qol_quick_access = UniLib.restore_data("quick_access_settings", [])
-      @scene.start(($qol_quick_access.clone.select { |e| QUICK_ACCESS_OPTIONS.include? e }) + ["Add/Remove"])
+      @scene.start(option_select)
       loop do
         if (command = @scene.show_commands) == -1
           pbSEPlay("menuclose")
@@ -988,6 +992,34 @@ if ENABLE_QUICK_ACCESS
         when "Heal Party"
           $Trainer.party.each { |pkmn| pkmn.heal }
           Kernel.pbMessage("Your Pokémon were healed.")
+          break if QUICK_ACCESS_EXIT_AFTER == 1
+        when "Fly"
+          region = $cache.mapdata[$game_map.map_id].MapPosition.is_a?(Hash) ? pbUnpackMapHash[0] : $cache.mapdata[$game_map.map_id].MapPosition[0]
+          scene = PokemonRegionMapScene.new(region, false)
+          screen = PokemonRegionMap.new(scene)
+          @scene.hide_and_execute {
+            ret = screen.pbStartFlyScreen
+            if ret
+              pbFlyAnimation
+              pbSEPlay("PRSFX- Fly2")
+              pbFadeOutIn(99999) {
+                Kernel.pbCancelVehicles
+                $game_temp.player_new_map_id, $game_temp.player_new_x, $game_temp.player_new_y = ret
+                $game_temp.player_new_direction = 2
+                $game_player.direction_fix = false
+                pbToneChangeAll(Tone.new(-255, -255, -255), 0)
+                $scene.transfer_player
+                pbToneChangeAll(Tone.new(0, 0, 0), 8)
+                $game_map.autoplay
+                $game_map.refresh
+                $game_variables[:Forced_Field_Effect] = 0
+                $game_switches[:Rage_Powder_Vial] = false
+                $game_switches[:Sleep_Powder_Vial] = false
+              }
+              pbFlyAnimation(true)
+              pbEraseEscapePoint
+            end
+          }
           break if QUICK_ACCESS_EXIT_AFTER == 1
         when "Add Item"
           @scene.hide_and_execute {
@@ -1039,7 +1071,7 @@ if ENABLE_QUICK_ACCESS
           break if QUICK_ACCESS_EXIT_AFTER == 1
         when "Add/Remove"
           @scene.hide_and_execute { QuickAccessSelectorMenu.new(QuickAccessMenuScene.new).menu }
-          @scene.commands = $qol_quick_access.clone + ["Add/Remove"]
+          @scene.commands = option_select
           @scene.refresh
         else break
         end

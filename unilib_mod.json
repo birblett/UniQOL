@@ -1,7 +1,12 @@
 {
-  "id": "uniqol",
-  "version": 1.0,
+  "id": "uni_qol",
+  "version": 0.7,
+  "unilib_version": 0.7,
   "priority": 2000,
+  "modules": [
+    "Asset",
+    "Options"
+  ],
   "entrypoints": [
     "UniQOL.rb"
   ]
