@@ -1,0 +1,18 @@
+{
+  "bag_item_count": true,
+  "debug_toggle": true,
+  "egg_relearn": true,
+  "encounter_lure": true,
+  "fishing_utils": true,
+  "full_party_encounter_effect": false,
+  "hatch_utils": true,
+  "hidden_power_changer": true,
+  "item_replenish": true,
+  "move_relearn_utils": true,
+  "quick_access_menu": true,
+  "snappy_menus": true,
+  "storage_mod_key": true,
+  "tmx_animation_toggle": true,
+  "type_battle_icons": true,
+  "unreal_clock": true
+}

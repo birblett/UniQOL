@@ -1,0 +1,9 @@
+{
+  "black_prism_chance": true,
+  "mass_release": true,
+  "prevo_relearn": true,
+  "shadow_cache": true,
+  "stat_boost_display": true,
+  "tech_contract_utils": true,
+  "transparent_mining_bg": true
+}
