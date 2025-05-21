@@ -1,6 +1,6 @@
 {
   "id": "birb_uniqol",
-  "version": 0.8,
+  "version": 1.2,
   "unilib_version": 0.8,
   "priority": 2000,
   "modules": [
