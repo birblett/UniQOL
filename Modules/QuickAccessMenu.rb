@@ -342,7 +342,7 @@ if UniLib.current_config("quick_access_menu")
   end
 
   UniLib.insert_in_method_before(:Scene_Map, :update, "if Input.trigger?(Input::Y)",
-    "if Input.trigger?(14) and ENABLE_QUICK_ACCESS and QUICK_ACCESS_ENABLED == 1
+    "if Input.trigger?(14) and UniLib.get_config(\"birb_uniqol\", \"quick_access_menu\") and QUICK_ACCESS_ENABLED == 1
       $PokemonTemp.quick_access = true
     end unless pbMapInterpreterRunning?")
 
