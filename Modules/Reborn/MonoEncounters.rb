@@ -37,15 +37,15 @@ if UniLib.current_config("force_mono_encounters")
       newenc, newchances = [], []
       for i in 0...encounters.length
         species, form = encounters[i][0], pbISActuallyDifferentForm(encounters[i][0])
-        stack = [species]
-        while (species = stack.pop)
+        stack = [[species, form]]
+        while ((species, form) = stack.pop)
           t1, t2 = $cache.pkmn[species, form].Type1, $cache.pkmn[species, form].Type2
           if t1 == type || t2 == type
             newenc.push(encounters[i])
             newchances.push(chances[i])
             break
           end
-          $cache.pkmn[species, form].evolutions.each { |h| stack.push(h[:species]) } if $cache.pkmn[species, form].evolutions
+          $cache.pkmn[species, form].evolutions.each { |h| $cache.pkmn[s = h[:species]].forms.each_with_index { |_, f| stack.push([s, f]) } } if $cache.pkmn[species, form].evolutions
         end
       end
       if FORCE_MONOTYPE_ENCOUNTER == 1

@@ -9,6 +9,7 @@
   "hidden_power_changer": true,
   "item_replenish": true,
   "move_relearn_utils": true,
+  "prevo_relearn": true,
   "quick_access_menu": true,
   "snappy_menus": true,
   "storage_mod_key": true,

@@ -7,9 +7,10 @@ if UniLib.current_config("full_party_encounter_effect")
   class PokeBattle_Pokemon
 
     FULL_PARTY_ABILITY_METHOD = instance_method(:ability) unless defined? FULL_PARTY_ABILITY_METHOD
-    def ability
-      multi = caller[0].include?("pbGenerateEncounter") || caller[0].include?("pbGenerateWildPokemon")
-      if FULL_PARTY_ENCOUNTER_EFFECT == 1 and multi
+    def ability(multi = false)
+      original = multi
+      multi = caller[0].include?("pbGenerateEncounter") || caller[0].include?("pbGenerateWildPokemon") unless original
+      if !original and FULL_PARTY_ENCOUNTER_EFFECT == 1 and multi
         added_abilities = []
         $Trainer.party.each_with_index { |pkmn, i| added_abilities += AbilityContainer.new(pkmn, pkmn.ability).abilities unless i == 0 }
         AbilityContainer.new(self, @ability, added_abilities)

@@ -1,4 +1,5 @@
 {
   "force_mono_encounters": true,
-  "free_nature_change": true
+  "free_nature_change": true,
+  "rock_smash_encounter_chance": true
 }
